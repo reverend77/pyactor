@@ -1,3 +1,5 @@
+import math
+
 class Message:
     """
     Basic message class used internally by the actor system.
@@ -39,4 +41,15 @@ class PoisonPill(Message):
     """
     def __init__(self, priority=0):
         super().__init__(None, None, priority=priority)
+
+
+class ActorCreationMessage(Message):
+    """
+    Internally used message - ought to create an actor
+    """
+    def __init__(self, actor_class, args, kwargs):
+        super().__init__(None, None)
+        self.actor_class = actor_class
+        self.args = args
+        self.kwargs = kwargs
 

@@ -4,7 +4,7 @@ from threading import Thread, Lock
 from time import sleep
 import weakref
 
-from .messages import PoisonPill, Broadcast
+from .messages import PoisonPill, Broadcast, ActorCreationMessage
 
 
 class Node(Thread):
@@ -61,7 +61,9 @@ class Node(Thread):
             msg = self._internal_queue_in.get(block=False)
         except Empty:
             return
-        if isinstance(msg, Broadcast):
+        if isinstance(msg, ActorCreationMessage):
+            self._queue_out.put(msg)
+        elif isinstance(msg, Broadcast):
             self._queue_out.put(msg)
             self.__broadcast_message(msg)
         elif msg.recipient in self._actors:
@@ -74,8 +76,12 @@ class Node(Thread):
             msg = self._external_queue_in.get(block=False)
         except Empty:
             return
-
-        if isinstance(msg, Broadcast):
+        if isinstance(msg, ActorCreationMessage):
+            """
+            Actor creation messages can only be handled if coming from external source.
+            """
+            self.__spawn_actor(msg)
+        elif isinstance(msg, Broadcast):
             self.__broadcast_message(msg)
         else:
             self.__send_message_to_local_recipient(msg)
@@ -89,6 +95,9 @@ class Node(Thread):
                     ref.enqueue_message(msg)
                 else:
                     del self._actors[msg.recipient]
+
+    def __spawn_actor(self, msg):
+        pass
 
     def __broadcast_message(self, msg):
         """
