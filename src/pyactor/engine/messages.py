@@ -28,8 +28,9 @@ class Broadcast(Message):
     """
     Utility class used to send a message to every actor in the system at the same time.
     """
-    def __init__(self, data, priority=0):
+    def __init__(self, data, source, priority=0):
         super().__init__(None, data, priority=priority)
+        self.source = source
 
 
 class PoisonPill(Message):

@@ -2,18 +2,20 @@ from threading import Thread
 from time import monotonic
 from queue import Empty
 
-from .messages import Message, PoisonPill
+from .messages import Message, PoisonPill, Broadcast
 
 
 class Actor(Thread):
     """
     Basic actor class.
     """
-    def __init__(self, identifier, queue_in):
+    def __init__(self, identifier, queue_in, queue_out):
         super().__init__()
         assert isinstance(identifier, str), "identifier must be a string"
         self.id = identifier
         self.__queue_in = queue_in
+        self._is_terminating = False
+        self._queue_out = queue_out
 
     def run(self):
         """
@@ -27,9 +29,16 @@ class Actor(Thread):
         :param message: message to be enqueued
         :return:
         """
+        if self._is_terminating:
+            return
         assert isinstance(message, Message)
         if isinstance(message, PoisonPill):
             self.__terminate()
+        elif isinstance(message, Broadcast) and message.source == self.id:
+            """
+            Ignore broadcast if this actor is the original source.
+            """
+            return
         elif self._is_data_valid(message.data):
             self.__queue_in.put(message.data)
 
@@ -41,6 +50,27 @@ class Actor(Thread):
         :return: boolean indicating whether this message should be processed
         """
         return True
+
+    def send_message(self, recipient, data, priority=0):
+        """
+        Send message to another actor using its id.
+        :param priority:
+        :param recipient:
+        :param data:
+        :return:
+        """
+        msg = Message(recipient, data, priority=priority)
+        self._queue_out.put(msg)
+
+    def send_broadcast_message(self, data, priority=0):
+        """
+        Send message to every other actor in the system.
+        :param priority:
+        :param data:
+        :return:
+        """
+        msg = Broadcast(data, source=self.id, priority=priority)
+        self._queue_out.put(msg)
 
     def receive(self, timeout=None, predicate=lambda x: True):
         """
@@ -80,6 +110,7 @@ class Actor(Thread):
         Method to be called when an actor is terminated.
         :return:
         """
+        self._is_terminating = True
         pass
 
 
