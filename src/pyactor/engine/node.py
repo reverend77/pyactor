@@ -7,6 +7,7 @@ import weakref
 from .messages import PoisonPill, Broadcast, ActorCreationMessage
 
 
+# TODO make nodes communicate without a central process
 class Node(Thread):
     def __init__(self, node_id, queue_in, queue_out, gc_interval=30):
         super().__init__()

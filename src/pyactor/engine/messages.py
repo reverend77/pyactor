@@ -1,4 +1,6 @@
-import math
+
+# TODO implement a class called ActorId with seperate nodeid and actorid to make communication faster
+
 
 class Message:
     """
