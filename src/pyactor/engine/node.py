@@ -1,6 +1,6 @@
 from multiprocessing import Queue
 from queue import Empty
-from threading import Thread, Lock
+from threading import Thread, RLock
 from time import sleep
 import weakref
 
@@ -17,12 +17,8 @@ class Node(Thread):
         self._internal_queue_in = Queue()
 
         self._actors = {}  # actor_id -> weak refs to actors
-        self._lock = Lock()
+        self._lock = RLock()
         self._alive = True
-
-    def put_actor(self, actor):
-        with self._lock:
-            self._actors[actor.id] = weakref.ref(actor)
 
     def run(self):
         while self._alive:
@@ -97,7 +93,16 @@ class Node(Thread):
                     del self._actors[msg.recipient]
 
     def __spawn_actor(self, msg):
-        pass
+        cls = msg.actor_class
+        args = msg.args
+        kwargs = msg.kwargs
+        with self._lock:
+            actor = cls(self.__next_actor_id(), *args, *kwargs)
+            self._actors[actor.id] = weakref.ref(actor)
+        actor.start()
+
+    def __next_actor_id(self):
+        raise NotImplementedError
 
     def __broadcast_message(self, msg):
         """
