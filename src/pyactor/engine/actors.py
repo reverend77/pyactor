@@ -14,7 +14,7 @@ class Actor(Thread):
         assert isinstance(identifier, ActorId), "identifier must be an ActorId"
         self.id = identifier
         self.__queue_in = Queue()
-        self.__queue_out = queue_out
+        self._queue_out = queue_out
         self.daemon = True  # makes it easier to stop a node immediately
 
     def run(self):
@@ -23,7 +23,7 @@ class Actor(Thread):
         """
         raise NotImplementedError("run method not implemented on actor {}".format(self.id))
 
-    def enqueue_message(self, message):
+    def _enqueue_message(self, message):
         """
         Used to put a data included in the message into the queue.
         :param message: message to be enqueued

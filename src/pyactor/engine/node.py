@@ -13,6 +13,7 @@ from .messages import Message, Broadcast, ActorCreationMessage, ActorId, ExitMes
 class Node(Thread):
     def __init__(self, node_id, queue_in, other_nodes, gc_interval=30):
         super().__init__()
+        assert node_id > 0, "node_id must be a positive integer"
         self._id = node_id
         self._external_queue_in = queue_in
         self._other_nodes = other_nodes
@@ -140,7 +141,7 @@ class Node(Thread):
             if ref:  # is there such an actor?
                 ref = ref()
                 if ref:  # is actor thread still active?
-                    ref.enqueue_message(msg)
+                    ref._enqueue_message(msg)
                 else:
                     del self._actors[msg.recipient]
 
@@ -189,7 +190,7 @@ class Node(Thread):
             for actor_id, ref in self._actors:
                 ref = ref()
                 if ref:
-                    ref.enqueue_message(msg)
+                    ref._enqueue_message(msg)
                 else:
                     del self._actors[actor_id]
 
