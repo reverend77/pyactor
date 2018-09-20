@@ -22,13 +22,14 @@ def start_system(nodes=cpu_count()):
 
 
 from pyactor.engine.actors import Actor
-
+from time import sleep
 
 class TestActor(Actor):
     def run(self):
-        print("Rotfl")
+        sleep(600)
         return
 
 if __name__ == "__main__":
     endpoint = start_system()
-    print(endpoint.spawn(TestActor))
+    for __ in range(1000000):
+        print(endpoint.spawn(TestActor))

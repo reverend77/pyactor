@@ -42,7 +42,7 @@ class Node(Thread):
         :return:
         """
         with self._lock:
-            for actor_id in (actor for actor, ref in self._actors if ref() is None):
+            for actor_id in [actor for actor, ref in self._actors.items() if ref() is None]:
                 del self._actors[actor_id]
 
     @staticmethod

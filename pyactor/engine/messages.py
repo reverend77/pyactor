@@ -20,6 +20,9 @@ class ActorId:
     def __hash__(self):
         return hash((self.node_id, self.actor_id))
 
+    def __repr__(self):
+        return "ActorId({}, {})".format(self.node_id, self.actor_id)
+
 
 class Message:
     """
