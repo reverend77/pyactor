@@ -88,14 +88,14 @@ class Node(Thread):
             self._enqueue_actor_spawn_message(msg)
 
         elif isinstance(msg, Broadcast):
-            self.__send_message_to_remote_recipient(msg)
+            self._send_message_to_remote_recipient(msg)
             self.__broadcast_message_locally(msg)
 
         elif msg.recipient.node_id == self._id:
-            self.__send_message_to_local_recipient(msg)
+            self._send_message_to_local_recipient(msg)
 
         else:
-            self.__send_message_to_remote_recipient(msg)
+            self._send_message_to_remote_recipient(msg)
         return True
 
     def _enqueue_actor_spawn_message(self, msg):
@@ -131,10 +131,10 @@ class Node(Thread):
             self.__broadcast_message_locally(msg)
 
         else:
-            self.__send_message_to_local_recipient(msg)
+            self._send_message_to_local_recipient(msg)
         return True
 
-    def __send_message_to_local_recipient(self, msg):
+    def _send_message_to_local_recipient(self, msg):
         """
         Sends a message to an actor belonging to current node.
         :param msg:
@@ -149,7 +149,7 @@ class Node(Thread):
                 else:
                     del self._actors[msg.recipient]
 
-    def __send_message_to_remote_recipient(self, msg):
+    def _send_message_to_remote_recipient(self, msg):
         """
         Sends a message to an actor that does not belong to current node.
         :param msg:

@@ -32,14 +32,14 @@ class ExternalNode(Node):
             self._enqueue_actor_spawn_message(msg)
 
         elif isinstance(msg, Broadcast):
-            self.__send_message_to_remote_recipient(msg)
+            self._send_message_to_remote_recipient(msg)
             self.__broadcast_message_locally(msg)
 
         elif msg.recipient.node_id == self._id:
-            self.__send_message_to_local_recipient(msg)
+            self._send_message_to_local_recipient(msg)
 
         else:
-            self.__send_message_to_remote_recipient(msg)
+            self._send_message_to_remote_recipient(msg)
         return True
 
     def create_endpoint(self):

@@ -27,9 +27,12 @@ from time import sleep
 class TestActor(Actor):
     def run(self):
         sleep(600)
+        self.receive()
         return
 
 if __name__ == "__main__":
     endpoint = start_system()
     for __ in range(1000000):
-        print(endpoint.spawn(TestActor))
+        pid = endpoint.spawn(TestActor)
+        endpoint.send_message(pid, [])
+        print(pid)
