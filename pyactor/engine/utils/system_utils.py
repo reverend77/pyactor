@@ -26,8 +26,8 @@ from time import sleep
 
 class TestActor(Actor):
     def run(self):
-        sleep(600)
         self.receive()
+        print("Received")
         return
 
 if __name__ == "__main__":
