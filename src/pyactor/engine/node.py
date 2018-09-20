@@ -61,19 +61,17 @@ class Node(Thread):
     def start(self):
         super().start()
         while True:
-            self.__handle_internal_message()
+            self._handle_internal_message()
             for __ in self._other_nodes:
-                self.__handle_external_message()
+                self._handle_external_message()
 
-    def __handle_internal_message(self):
+    def _handle_internal_message(self):
         """
         Handle a message that came from local actor.
         :return:
         """
         try:
             msg = self._internal_queue_in.get(block=False)
-            if isinstance(msg, ExitMessage):
-                self.terminate()
 
             assert isinstance(msg, Message), "Message must be an instance of Message class"
         except Empty:
@@ -83,7 +81,7 @@ class Node(Thread):
             """
             An actor will be spawned, but it has yet to be determined where to spawn it.
             """
-            self.__enqueue_actor_spawn_message(msg)
+            self._enqueue_actor_spawn_message(msg)
 
         elif isinstance(msg, Broadcast):
             self.__send_message_to_remote_recipient(msg)
@@ -95,7 +93,7 @@ class Node(Thread):
         else:
             self.__send_message_to_remote_recipient(msg)
 
-    def __enqueue_actor_spawn_message(self, msg):
+    def _enqueue_actor_spawn_message(self, msg):
         """
         Select a random node and orders it to spawn an actor inside.
         :param msg:
@@ -104,7 +102,7 @@ class Node(Thread):
         chosen_queue = choice(self._all_node_queues)
         chosen_queue.put(msg)
 
-    def __handle_external_message(self):
+    def _handle_external_message(self):
         """
         Handle a message that came from external node.
         :return:
@@ -164,7 +162,7 @@ class Node(Thread):
         args = msg.args
         kwargs = msg.kwargs
         with self._lock:
-            actor = cls(self.__next_actor_id(), self._internal_queue_in, *args, *kwargs)
+            actor = cls(self._next_actor_id(), self._internal_queue_in, *args, *kwargs)
             self._actors[actor.id] = weakref.ref(actor)
         actor.start()
 
@@ -172,7 +170,7 @@ class Node(Thread):
         sender.send(actor.id) # return actor id to the caller
         sender.close()
 
-    def __next_actor_id(self):
+    def _next_actor_id(self):
         internal_id = monotonic_ns()
         actor_id = ActorId(self._id, internal_id)
         with self._lock:

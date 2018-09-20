@@ -9,12 +9,13 @@ class Actor(Thread):
     """
     Basic actor class.
     """
-    def __init__(self, identifier, queue_out):
+    def __init__(self, identifier, queue_out, accept_broadcasts=True):
         super().__init__()
         assert isinstance(identifier, ActorId), "identifier must be an ActorId"
         self.id = identifier
         self.__queue_in = Queue()
         self._queue_out = queue_out
+        self.__accept_broadcasts = accept_broadcasts
         self.daemon = True  # makes it easier to stop a node immediately
 
     def run(self):
@@ -31,9 +32,9 @@ class Actor(Thread):
         """
         assert isinstance(message, Message), "Unsupported message - must be an instance of Message"
 
-        if isinstance(message, Broadcast) and message.source == self.id:
+        if isinstance(message, Broadcast) and (not self.__accept_broadcasts or message.source == self.id):
             """
-            Ignore broadcast if this actor is the original source.
+            Ignore broadcast if this actor is the original source or if this actor does not accept broadcasts.
             """
             return
         elif self._is_data_valid(message.data):
@@ -57,7 +58,7 @@ class Actor(Thread):
         :return:
         """
         msg = Message(recipient, data)
-        self.__queue_out.put(msg)
+        self._queue_out.put(msg)
 
     def send_broadcast_message(self, data):
         """
@@ -67,7 +68,7 @@ class Actor(Thread):
         :return:
         """
         msg = Broadcast(data, source=self.id)
-        self.__queue_out.put(msg)
+        self._queue_out.put(msg)
 
     def spawn(self, actor_class, *args, **kwargs):
         """
@@ -78,7 +79,7 @@ class Actor(Thread):
         :return:
         """
         message = ActorCreationMessage(actor_class, *args, **kwargs)
-        self.__queue_out.put(message)
+        self._queue_out.put(message)
         receiver = message.receiver
         actor_id = receiver.recv()
         assert isinstance(actor_id, ActorId), "actor_id must be an instance of ActorId"
