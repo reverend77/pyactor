@@ -24,7 +24,8 @@ class Node(Thread):
         self._alive = True
 
         actor_spawning_queues = [queue for id, queue in other_nodes.items() if id != 0] # 0 is id of external node
-        actor_spawning_queues.append(queue_in)
+        if self._id != 0:
+            actor_spawning_queues.append(queue_in)
         self._actor_spawning_queues = actor_spawning_queues
 
     def run(self):
