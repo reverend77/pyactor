@@ -1,3 +1,6 @@
+from multiprocessing import Pipe
+
+
 class ActorId:
     """
     Class used to identify an actor in the system.
@@ -58,4 +61,5 @@ class ActorCreationMessage(Message):
         self.actor_class = actor_class
         self.args = args
         self.kwargs = kwargs
+        self.receiver, self.sender = Pipe(False)
 
