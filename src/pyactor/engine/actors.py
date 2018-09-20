@@ -81,6 +81,7 @@ class Actor(Thread):
         self.__queue_out.put(message)
         receiver = message.receiver
         actor_id = receiver.recv()
+        assert isinstance(actor_id, ActorId), "actor_id must be an instance of ActorId"
         receiver.close()
         return actor_id
 
