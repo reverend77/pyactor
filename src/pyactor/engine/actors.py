@@ -1,21 +1,21 @@
 from threading import Thread
 from time import monotonic
-from queue import Empty
+from queue import Empty, Queue
 
-from .messages import Message, PoisonPill, Broadcast
+from .messages import Message, ActorId, Broadcast
 
 
 class Actor(Thread):
     """
     Basic actor class.
     """
-    def __init__(self, identifier, queue_in, queue_out):
+    def __init__(self, identifier, queue_out):
         super().__init__()
-        assert isinstance(identifier, str), "identifier must be a string"
+        assert isinstance(identifier, ActorId), "identifier must be an ActorId"
         self.id = identifier
-        self.__queue_in = queue_in
-        self._is_terminating = False
-        self._queue_out = queue_out
+        self.__queue_in = Queue()
+        self.__queue_out = queue_out
+        self.daemon = True  # makes it easier to stop a node immediately
 
     def run(self):
         """
@@ -29,12 +29,9 @@ class Actor(Thread):
         :param message: message to be enqueued
         :return:
         """
-        if self._is_terminating:
-            return
-        assert isinstance(message, Message)
-        if isinstance(message, PoisonPill):
-            self.__terminate()
-        elif isinstance(message, Broadcast) and message.source == self.id:
+        assert isinstance(message, Message), "Unsupported message - must be an instance of Message"
+
+        if isinstance(message, Broadcast) and message.source == self.id:
             """
             Ignore broadcast if this actor is the original source.
             """
@@ -51,7 +48,7 @@ class Actor(Thread):
         """
         return True
 
-    def send_message(self, recipient, data, priority=0):
+    def send_message(self, recipient, data):
         """
         Send message to another actor using its id.
         :param priority:
@@ -59,18 +56,18 @@ class Actor(Thread):
         :param data:
         :return:
         """
-        msg = Message(recipient, data, priority=priority)
-        self._queue_out.put(msg)
+        msg = Message(recipient, data)
+        self.__queue_out.put(msg)
 
-    def send_broadcast_message(self, data, priority=0):
+    def send_broadcast_message(self, data):
         """
         Send message to every other actor in the system.
         :param priority:
         :param data:
         :return:
         """
-        msg = Broadcast(data, source=self.id, priority=priority)
-        self._queue_out.put(msg)
+        msg = Broadcast(data, source=self.id)
+        self.__queue_out.put(msg)
 
     def receive(self, timeout=None, predicate=lambda x: True):
         """
@@ -104,14 +101,6 @@ class Actor(Thread):
                 for non_matched in non_matching:
                     self.__queue_in.put(non_matched)
         raise ReceiveTimeoutException("Matching message not found.")
-
-    def __terminate(self):
-        """
-        Method to be called when an actor is terminated.
-        :return:
-        """
-        self._is_terminating = True
-        pass
 
 
 class ReceiveTimeoutException(Exception):
