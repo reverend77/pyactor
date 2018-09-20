@@ -24,9 +24,9 @@ class Node(Thread):
         self._lock = RLock()
         self._alive = True
 
-        all_node_queues = [queue for queue in other_nodes.values()]
-        all_node_queues.append(queue_in)
-        self._all_node_queues = all_node_queues
+        actor_spawning_queues = [queue for id, queue in other_nodes.items() if id != 0] # 0 is id of external node
+        actor_spawning_queues.append(queue_in)
+        self._actor_spawning_queues = actor_spawning_queues
 
     def run(self):
         """
@@ -99,7 +99,7 @@ class Node(Thread):
         :param msg:
         :return:
         """
-        chosen_queue = choice(self._all_node_queues)
+        chosen_queue = choice(self._actor_spawning_queues)
         chosen_queue.put(msg)
 
     def _handle_external_message(self):

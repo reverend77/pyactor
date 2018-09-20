@@ -5,12 +5,10 @@ from .endpoint import Endpoint
 from queue import Empty
 from random import choice
 
-EXTERNAL_NODE_ID = 0
-
 
 class ExternalNode(Node):
     def __init__(self, queue_in, other_nodes):
-        super().__init__(EXTERNAL_NODE_ID, queue_in, other_nodes)
+        super().__init__(0, queue_in, other_nodes)
 
     def _handle_internal_message(self):
         """
@@ -43,10 +41,6 @@ class ExternalNode(Node):
 
         else:
             self.__send_message_to_remote_recipient(msg)
-
-    def _enqueue_actor_spawn_message(self, msg):
-        chosen_queue = choice(self._other_nodes.values())
-        chosen_queue.put(msg)
 
     def create_endpoint(self):
         actor_id = self._next_actor_id()
