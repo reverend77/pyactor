@@ -31,7 +31,7 @@ class Message:
         :param recipient: id of the recipient
         :param data: content of message
         """
-        assert isinstance(recipient, ActorId), "recipient must be a string identifier"
+        assert isinstance(recipient, ActorId) or recipient is None, "recipient must be a string identifier"
         self.data = data
         self.recipient = recipient
 

@@ -5,7 +5,7 @@ from queue import Empty, Queue
 from pyactor.engine.messages import Message, ActorId, Broadcast, ActorCreationMessage
 
 
-class Actor(Thread):
+class Actor:
     """
     Basic actor class.
     """
@@ -16,7 +16,12 @@ class Actor(Thread):
         self.__queue_in = Queue()
         self._queue_out = queue_out
         self.__accept_broadcasts = accept_broadcasts
-        self.daemon = True  # makes it easier to stop a node immediately
+        self._thread = None
+
+    def start(self):
+        self._thread = Thread(target=self.run)
+        self._thread.daemon = True
+        self._thread.start()
 
     def run(self):
         """

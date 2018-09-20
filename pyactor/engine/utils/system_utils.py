@@ -1,5 +1,6 @@
 from multiprocessing import Queue, Process
 from os import cpu_count
+from threading import Thread
 
 from pyactor.engine.external.node import ExternalNode
 from pyactor.engine.utils.node_utils import spawn_and_start_node
@@ -7,8 +8,9 @@ from pyactor.engine.utils.node_utils import spawn_and_start_node
 
 def _start_external_node(queue_in, other_queues_out):
     node = ExternalNode(queue_in, {id: queue for id, queue in other_queues_out.items() if id != 0})
-    node.start()
-    return node.create_endpoint()
+    endpoint = node.create_endpoint()
+    Thread(target=node.start).start()
+    return endpoint
 
 
 def start_system(nodes=cpu_count()):
@@ -19,5 +21,14 @@ def start_system(nodes=cpu_count()):
     return _start_external_node(queues[0], queues)
 
 
+from pyactor.engine.actors import Actor
+
+
+class TestActor(Actor):
+    def run(self):
+        print("Rotfl")
+        return
+
 if __name__ == "__main__":
-    endpoint = start_system(1)
+    endpoint = start_system()
+    print(endpoint.spawn(TestActor))

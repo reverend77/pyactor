@@ -1,5 +1,5 @@
 from pyactor.engine.node import Node
-from pyactor.engine.messages import Message, ExitMessage, ActorCreationMessage, Broadcast, ActorId
+from pyactor.engine.messages import Message, ExitMessage, ActorCreationMessage, Broadcast
 from pyactor.engine.external.endpoint import Endpoint
 
 from queue import Empty
