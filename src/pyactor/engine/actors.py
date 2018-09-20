@@ -2,7 +2,7 @@ from threading import Thread
 from time import monotonic
 from queue import Empty, Queue
 
-from .messages import Message, ActorId, Broadcast
+from .messages import Message, ActorId, Broadcast, ActorCreationMessage
 
 
 class Actor(Thread):
@@ -68,6 +68,21 @@ class Actor(Thread):
         """
         msg = Broadcast(data, source=self.id)
         self.__queue_out.put(msg)
+
+    def spawn(self, actor_class, *args, **kwargs):
+        """
+        Spawns an actor and returns that actor id.
+        :param actor_class:
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        message = ActorCreationMessage(actor_class, *args, **kwargs)
+        self.__queue_out.put(message)
+        receiver = message.receiver
+        actor_id = receiver.recv()
+        receiver.close()
+        return actor_id
 
     def receive(self, timeout=None, predicate=lambda x: True):
         """

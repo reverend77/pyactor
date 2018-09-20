@@ -167,6 +167,10 @@ class Node(Thread):
             self._actors[actor.id] = weakref.ref(actor)
         actor.start()
 
+        sender = msg.sender
+        sender.send(actor.id) # return actor id to the caller
+        sender.close()
+
     def __next_actor_id(self):
         internal_id = monotonic_ns()
         actor_id = ActorId(self._id, internal_id)

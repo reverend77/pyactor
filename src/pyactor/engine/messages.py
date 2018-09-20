@@ -56,7 +56,7 @@ class ActorCreationMessage(Message):
     """
     Internally used message - ought to create an actor
     """
-    def __init__(self, actor_class, args, kwargs):
+    def __init__(self, actor_class, *args, **kwargs):
         super().__init__(None, None)
         self.actor_class = actor_class
         self.args = args
