@@ -1,4 +1,4 @@
-from src.pyactor.engine.node import Node
+from pyactor.engine.node import Node
 
 NODE = None
 

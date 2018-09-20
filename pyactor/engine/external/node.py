@@ -1,9 +1,8 @@
-from ..node import Node
-from ..messages import Message, ExitMessage, ActorCreationMessage, Broadcast, ActorId
-from .endpoint import Endpoint
+from pyactor.engine.node import Node
+from pyactor.engine.messages import Message, ExitMessage, ActorCreationMessage, Broadcast, ActorId
+from pyactor.engine.external.endpoint import Endpoint
 
 from queue import Empty
-from random import choice
 
 
 class ExternalNode(Node):
@@ -24,7 +23,7 @@ class ExternalNode(Node):
 
             assert isinstance(msg, Message), "Message must be an instance of Message class"
         except Empty:
-            return
+            return False
 
         if isinstance(msg, ActorCreationMessage):
             """
@@ -41,6 +40,7 @@ class ExternalNode(Node):
 
         else:
             self.__send_message_to_remote_recipient(msg)
+        return True
 
     def create_endpoint(self):
         actor_id = self._next_actor_id()

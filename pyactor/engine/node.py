@@ -6,14 +6,13 @@ import weakref
 from sys import exit
 from random import choice
 
-from .messages import Message, Broadcast, ActorCreationMessage, ActorId, ExitMessage
+from pyactor.engine.messages import Message, Broadcast, ActorCreationMessage, ActorId, ExitMessage
 
 
 # TODO make nodes communicate without a central process
 class Node(Thread):
     def __init__(self, node_id, queue_in, other_nodes, gc_interval=30):
         super().__init__()
-        assert node_id > 0, "node_id must be a positive integer"
         self._id = node_id
         self._external_queue_in = queue_in
         self._other_nodes = other_nodes
@@ -61,9 +60,14 @@ class Node(Thread):
     def start(self):
         super().start()
         while True:
-            self._handle_internal_message()
+            internal_message_received = self._handle_internal_message()
+            external_message_received = False
             for __ in self._other_nodes:
-                self._handle_external_message()
+                external_message_received = self._handle_external_message()
+                if not external_message_received:
+                    break
+            if not (internal_message_received or external_message_received):
+                sleep(0.2)
 
     def _handle_internal_message(self):
         """
@@ -75,7 +79,7 @@ class Node(Thread):
 
             assert isinstance(msg, Message), "Message must be an instance of Message class"
         except Empty:
-            return
+            return False
 
         if isinstance(msg, ActorCreationMessage):
             """
@@ -92,6 +96,7 @@ class Node(Thread):
 
         else:
             self.__send_message_to_remote_recipient(msg)
+        return True
 
     def _enqueue_actor_spawn_message(self, msg):
         """
@@ -114,7 +119,7 @@ class Node(Thread):
 
             assert isinstance(msg, Message), "Message must be an instance of Message class"
         except Empty:
-            return
+            return False
 
         if isinstance(msg, ActorCreationMessage):
             """
@@ -127,6 +132,7 @@ class Node(Thread):
 
         else:
             self.__send_message_to_local_recipient(msg)
+        return True
 
     def __send_message_to_local_recipient(self, msg):
         """

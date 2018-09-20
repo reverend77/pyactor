@@ -2,7 +2,7 @@ from threading import Thread
 from time import monotonic
 from queue import Empty, Queue
 
-from .messages import Message, ActorId, Broadcast, ActorCreationMessage
+from pyactor.engine.messages import Message, ActorId, Broadcast, ActorCreationMessage
 
 
 class Actor(Thread):

@@ -1,5 +1,5 @@
-from ..actors import Actor
-from ..messages import ExitMessage
+from pyactor.engine.actors import Actor
+from pyactor.engine.messages import ExitMessage
 
 
 class Endpoint(Actor):

@@ -1,12 +1,12 @@
 from multiprocessing import Queue, Process
 from os import cpu_count
 
-from ..external.node import ExternalNode
-from .node_utils import spawn_and_start_node
+from pyactor.engine.external.node import ExternalNode
+from pyactor.engine.utils.node_utils import spawn_and_start_node
 
 
 def _start_external_node(queue_in, other_queues_out):
-    node = ExternalNode(queue_in, {id: queue for id, queue in other_queues_out if id != 0})
+    node = ExternalNode(queue_in, {id: queue for id, queue in other_queues_out.items() if id != 0})
     node.start()
     return node.create_endpoint()
 
@@ -17,3 +17,7 @@ def start_system(nodes=cpu_count()):
         proc = Process(target=spawn_and_start_node, args=(id, queues[id], queues))
         proc.start()
     return _start_external_node(queues[0], queues)
+
+
+if __name__ == "__main__":
+    endpoint = start_system(1)
