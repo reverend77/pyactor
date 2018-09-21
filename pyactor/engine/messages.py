@@ -1,4 +1,5 @@
 from multiprocessing import Pipe
+from time import monotonic
 
 
 class ActorId:
@@ -11,14 +12,17 @@ class ActorId:
 
         self.node_id = node_id
         self.actor_id = actor_id
+        self.creation_time = monotonic()
 
     def __eq__(self, other):
         if isinstance(other, ActorId):
-            return other.node_id == self.node_id and self.actor_id == other.actor_id
+            return (other.node_id == self.node_id
+                    and self.actor_id == other.actor_id
+                    and self.creation_time == other.creation_time)
         return False
 
     def __hash__(self):
-        return hash((self.node_id, self.actor_id))
+        return hash((self.node_id, self.actor_id, self.creation_time))
 
     def __repr__(self):
         return "ActorId({}, {})".format(self.node_id, self.actor_id)
@@ -37,6 +41,7 @@ class Message:
         assert isinstance(recipient, ActorId) or recipient is None, "recipient must be a string identifier"
         self.data = data
         self.recipient = recipient
+        self.creation_time = monotonic()
 
     def __repr__(self):
         return "Message({},{})".format(self.recipient, self.data)

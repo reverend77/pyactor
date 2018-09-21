@@ -9,7 +9,7 @@ class Actor:
     """
     Basic actor class.
     """
-    def __init__(self, identifier, queue_out, accept_broadcasts=True):
+    def __init__(self, identifier, queue_out, pipe_semaphore, accept_broadcasts=True):
         super().__init__()
         assert isinstance(identifier, ActorId), "identifier must be an ActorId"
         self.id = identifier
@@ -17,6 +17,7 @@ class Actor:
         self._queue_out = queue_out
         self.__accept_broadcasts = accept_broadcasts
         self._thread = None
+        self.__pipe_semaphore = pipe_semaphore
 
     def start(self):
         self._thread = Thread(target=self.run)
@@ -83,13 +84,14 @@ class Actor:
         :param kwargs:
         :return:
         """
-        message = ActorCreationMessage(actor_class, *args, **kwargs)
-        self._queue_out.put(message)
-        receiver = message.receiver
-        actor_id = receiver.recv()
-        assert isinstance(actor_id, ActorId), "actor_id must be an instance of ActorId"
-        receiver.close()
-        return actor_id
+        with self.__pipe_semaphore:
+            message = ActorCreationMessage(actor_class, *args, **kwargs)
+            self._queue_out.put(message)
+            receiver = message.receiver
+            actor_id = receiver.recv()
+            assert isinstance(actor_id, ActorId), "actor_id must be an instance of ActorId"
+            receiver.close()
+            return actor_id
 
     def receive(self, timeout=None, predicate=lambda x: True):
         """
@@ -122,6 +124,7 @@ class Actor:
             finally:
                 for non_matched in non_matching:
                     self.__queue_in.put(non_matched)
+
         raise ReceiveTimeoutException("Matching message not found.")
 
 

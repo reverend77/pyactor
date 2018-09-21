@@ -1,7 +1,7 @@
 from multiprocessing import Queue
 from queue import Empty
 from threading import Thread, RLock
-from time import sleep, monotonic_ns
+from time import sleep, monotonic
 import weakref
 from sys import exit
 from random import choice
@@ -11,7 +11,7 @@ from pyactor.engine.messages import Message, Broadcast, ActorCreationMessage, Ac
 
 # TODO make nodes communicate without a central process
 class Node(Thread):
-    def __init__(self, node_id, queue_in, other_nodes, gc_interval=30):
+    def __init__(self, node_id, queue_in, other_nodes, pipe_semaphore, gc_interval=30):
         super().__init__()
         self._id = node_id
         self._external_queue_in = queue_in
@@ -22,6 +22,7 @@ class Node(Thread):
         self._actors = {}  # actor_id -> weak refs to actors
         self._lock = RLock()
         self._alive = True
+        self._pipe_semaphore = pipe_semaphore
 
         actor_spawning_queues = [queue for id, queue in other_nodes.items() if id != 0] # 0 is id of external node
         if self._id != 0:
@@ -169,7 +170,7 @@ class Node(Thread):
         args = msg.args
         kwargs = msg.kwargs
         with self._lock:
-            actor = cls(self._next_actor_id(), self._internal_queue_in, *args, *kwargs)
+            actor = cls(self._next_actor_id(), self._internal_queue_in, self._pipe_semaphore, *args, *kwargs)
             self._actors[actor.id] = weakref.ref(actor)
         actor.start()
 
@@ -178,7 +179,7 @@ class Node(Thread):
         sender.close()
 
     def _next_actor_id(self):
-        internal_id = monotonic_ns()
+        internal_id = int(monotonic() * 1e9)
         actor_id = ActorId(self._id, internal_id)
         with self._lock:
             while actor_id in self._actors:

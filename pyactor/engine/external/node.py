@@ -6,8 +6,8 @@ from queue import Empty
 
 
 class ExternalNode(Node):
-    def __init__(self, queue_in, other_nodes):
-        super().__init__(0, queue_in, other_nodes)
+    def __init__(self, queue_in, other_nodes, pipe_semaphore):
+        super().__init__(0, queue_in, other_nodes, pipe_semaphore)
 
     def _handle_internal_message(self):
         """
@@ -44,4 +44,4 @@ class ExternalNode(Node):
 
     def create_endpoint(self):
         actor_id = self._next_actor_id()
-        return Endpoint(actor_id, self._internal_queue_in)
+        return Endpoint(actor_id, self._internal_queue_in, self._pipe_semaphore)
