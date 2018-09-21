@@ -28,9 +28,10 @@ from time import sleep
 
 class TestActor(Actor):
     def run(self):
-        self.receive()
-        print("Received")
-        return
+            self.spawn(self.__class__)
+            self.spawn(self.__class__)
+            self.spawn(self.__class__)
+            self.spawn(self.__class__)
 
 if __name__ == "__main__":
     endpoint = start_system()

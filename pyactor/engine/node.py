@@ -1,4 +1,4 @@
-from multiprocessing import Queue
+from queue import Queue
 from queue import Empty
 from threading import Thread, RLock
 from time import sleep, monotonic
