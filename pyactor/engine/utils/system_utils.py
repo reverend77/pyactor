@@ -25,13 +25,13 @@ def start_system(nodes=cpu_count()):
 
 from pyactor.engine.actors import Actor
 from time import sleep
-
+from threading import active_count
 class TestActor(Actor):
     def run(self):
             self.spawn(self.__class__)
             self.spawn(self.__class__)
-            self.spawn(self.__class__)
-            self.spawn(self.__class__)
+            sleep(2)
+            print("Active actors: {}".format(active_count()))
 
 if __name__ == "__main__":
     endpoint = start_system()
