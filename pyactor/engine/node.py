@@ -22,32 +22,11 @@ class Node:
         self._alive = True
         self._pipe_semaphore = pipe_semaphore
 
-        self.__greenlet_thread = Thread(target=self.__run_actors)
-        self.__greenlet_thread.daemon = True
-
         actor_spawning_queues = [queue for id, queue in other_nodes.items() if id != 0] # 0 is id of external node
         if self._id != 0:
             actor_spawning_queues.append(queue_in)
         self._actor_spawning_queues = actor_spawning_queues
-        self.__greenlet_queue = Queue()
-        self.__greenlet_spawning_queue = Queue()
-
-    def __run_actors(self):
-        def spawn_greenlet():
-            while True:
-                try:
-                    next_greenlet = self.__greenlet_spawning_queue.get_nowait()
-                    next_greenlet.start()
-                except Empty:
-                    if self.__greenlet_queue.empty():
-                        sleep(0.5)
-                        continue
-                    self.__greenlet_queue.put(init)
-                    next_greenlet = self.__greenlet_queue.get()
-                    next_greenlet.switch()
-
-        init = greenlet(spawn_greenlet)
-        init.switch()
+        self.__greenlet_nodes = [GreenletNode() for __ in range(2)]
 
     @staticmethod
     def terminate():
@@ -62,7 +41,7 @@ class Node:
         self._external_queue_in.put(message)
 
     def start(self):
-        self.__greenlet_thread.start()
+        [node.start() for node in self.__greenlet_nodes]
         while True:
             internal_message_received = self._handle_internal_message()
             external_message_received = False
@@ -106,6 +85,9 @@ class Node:
         """
         chosen_queue = choice(self._actor_spawning_queues)
         chosen_queue.put(msg)
+
+    def _choose_greenlet_node(self):
+        return choice(self.__greenlet_nodes)
 
     def _handle_external_message(self):
         """
@@ -162,10 +144,12 @@ class Node:
                 with self._lock:
                     del self._actors[actor.id]
 
-            actor = cls(actor_id, self._internal_queue_in, self._pipe_semaphore, self.__greenlet_queue,*args, callback=remove_actor_ref, *kwargs)
+            node = self._choose_greenlet_node()
+
+            actor = cls(actor_id, self._internal_queue_in, self._pipe_semaphore, node.shared_queue(), *args, callback=remove_actor_ref, *kwargs)
             self._actors[actor.id] = actor
 
-        self.__greenlet_spawning_queue.put(actor)
+            node.schedule_spawn(actor)
 
         sender = msg.sender
         sender.send(actor.id) # return actor id to the caller
@@ -182,6 +166,40 @@ class Node:
     def _get_actor_by_id(self, id):
         with self._lock:
             return self._actors.get(id, None)
+
+
+class GreenletNode:
+    def __init__(self):
+        self.__scheduled_queue = Queue()
+        self.__spawn_queue = Queue()
+        self.__thread = Thread(target=self.__run_greenlets)
+        self.__thread.daemon = True
+
+    def __run_greenlets(self):
+        def spawn_greenlet():
+            while True:
+                try:
+                    next_greenlet = self.__spawn_queue.get_nowait()
+                    next_greenlet.start()
+                except Empty:
+                    if self.__scheduled_queue.empty():
+                        sleep(0.5)
+                        continue
+                    self.__scheduled_queue.put(init)
+                    next_greenlet = self.__scheduled_queue.get()
+                    next_greenlet.switch()
+
+        init = greenlet(spawn_greenlet)
+        init.switch()
+
+    def schedule_spawn(self, actor):
+        self.__spawn_queue.put(actor)
+
+    def shared_queue(self):
+        return self.__scheduled_queue
+
+    def start(self):
+        self.__thread.start()
 
 
 
