@@ -4,7 +4,7 @@ from threading import RLock, Thread
 from time import sleep, monotonic
 from sys import exit
 from random import choice
-from greenlet import greenlet
+import asyncio
 
 from pyactor.engine.messages import Message, ActorCreationMessage, ActorId, ExitMessage
 
@@ -26,7 +26,17 @@ class Node:
         if self._id != 0:
             actor_spawning_queues.append(queue_in)
         self._actor_spawning_queues = actor_spawning_queues
-        self.__greenlet_nodes = [GreenletNode() for __ in range(2)]
+
+        self._event_loop_thread = Thread(target=self.__event_loop_method)
+        self._event_loop_thread.daemon = True
+
+        self._event_loop = None
+
+    def __event_loop_method(self):
+        loop = asyncio.new_event_loop()
+        self._event_loop = loop
+        asyncio.set_event_loop(loop)
+        loop.run_forever()
 
     @staticmethod
     def terminate():
@@ -41,7 +51,7 @@ class Node:
         self._external_queue_in.put(message)
 
     def start(self):
-        [node.start() for node in self.__greenlet_nodes]
+        self._event_loop_thread.start()
         while True:
             internal_message_received = self._handle_internal_message()
             external_message_received = False
@@ -85,9 +95,6 @@ class Node:
         """
         chosen_queue = choice(self._actor_spawning_queues)
         chosen_queue.put(msg)
-
-    def _choose_greenlet_node(self):
-        return choice(self.__greenlet_nodes)
 
     def _handle_external_message(self):
         """
@@ -144,12 +151,12 @@ class Node:
                 with self._lock:
                     del self._actors[actor.id]
 
-            node = self._choose_greenlet_node()
-
-            actor = cls(actor_id, self._internal_queue_in, self._pipe_semaphore, node.shared_queue(), *args, callback=remove_actor_ref, *kwargs)
+            actor = cls(actor_id, self._internal_queue_in, self._pipe_semaphore, *args, callback=remove_actor_ref, *kwargs)
             self._actors[actor.id] = actor
 
-            node.schedule_spawn(actor)
+            while self._event_loop is None:
+                sleep(0.001)
+            actor.start(self._event_loop)
 
         sender = msg.sender
         sender.send(actor.id) # return actor id to the caller
@@ -166,42 +173,6 @@ class Node:
     def _get_actor_by_id(self, id):
         with self._lock:
             return self._actors.get(id, None)
-
-
-class GreenletNode:
-    def __init__(self):
-        self.__scheduled_queue = Queue()
-        self.__spawn_queue = Queue()
-        self.__thread = Thread(target=self.__run_greenlets)
-        self.__thread.daemon = True
-
-    def __run_greenlets(self):
-        def spawn_greenlet():
-            while True:
-                try:
-                    next_greenlet = self.__spawn_queue.get_nowait()
-                    next_greenlet.start()
-                except Empty:
-                    if self.__scheduled_queue.empty():
-                        sleep(0.5)
-                        continue
-                    self.__scheduled_queue.put(init)
-                    next_greenlet = self.__scheduled_queue.get()
-                    if next_greenlet != init:
-                        next_greenlet.switch()
-
-        init = greenlet(spawn_greenlet)
-        init.switch()
-
-    def schedule_spawn(self, actor):
-        self.__spawn_queue.put(actor)
-
-    def shared_queue(self):
-        return self.__scheduled_queue
-
-    def start(self):
-        self.__thread.start()
-
 
 
 

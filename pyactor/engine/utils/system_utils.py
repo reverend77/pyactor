@@ -24,16 +24,18 @@ def start_system(nodes=cpu_count()):
     return _start_external_node(queues[0], queues, pipe_semaphore)
 
 
-from pyactor.engine.actors import Actor, ReceiveTimedOut
+from pyactor.engine.actors import Actor, ReceiveTimedOut, ActorId
 from time import sleep
 
+
 class TestActor(Actor):
-    def run(self):
-        endpoint_pid = self.receive()
-        self.send_message(endpoint_pid, None)
+    async def run(self):
+        endpoint_pid = await self.receive(predicate=lambda d: isinstance(d, ActorId))
+        await self.send_message(endpoint_pid, None)
         while True:
-            child_pid = self.spawn(self.__class__)
-            self.send_message(child_pid, endpoint_pid)
+            child_pid = await self.spawn(self.__class__)
+            await self.send_message(child_pid, endpoint_pid)
+
 
 if __name__ == "__main__":
     endpoint = start_system()

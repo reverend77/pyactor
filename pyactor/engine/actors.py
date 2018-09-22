@@ -1,6 +1,6 @@
 from time import monotonic, sleep
 from queue import Empty, Queue
-from greenlet import greenlet
+import asyncio
 
 from pyactor.engine.messages import Message, ActorId, ActorCreationMessage
 
@@ -9,39 +9,30 @@ class Actor:
     """
     Basic actor class.
     """
-    def __init__(self, identifier, queue_out, pipe_semaphore, greenlet_queue, callback=None):
+
+    def __init__(self, identifier, queue_out, pipe_semaphore, callback=None):
         super().__init__()
         assert isinstance(identifier, ActorId), "identifier must be an ActorId"
         self.id = identifier
-        self.__queue_in = Queue()
+        self._queue_in = Queue()
         self._queue_out = queue_out
-        self.__pipe_semaphore = pipe_semaphore
+        self._pipe_semaphore = pipe_semaphore
         self.__callback = callback
-        self.__greenlet_queue = greenlet_queue
-        self._thread = None
 
-    def switch(self):
-        if not self._thread:
-            sleep(0.01)
-            return
+    async def switch(self):
+        await asyncio.sleep(0.01)
 
-        self.__greenlet_queue.put(self._thread)
-        next_scheduled = self.__greenlet_queue.get()
-        if self._thread != next_scheduled:
-            next_scheduled.switch()
+    def start(self, loop):
+        asyncio.run_coroutine_threadsafe(self.run(), loop)
 
-    def start(self):
-        self._thread = greenlet(self.__run)
-        self.__greenlet_queue.put(self._thread)
-
-    def __run(self):
+    async def __run(self):
         try:
-            self.run()
+            await self.run()
         finally:
             if self.__callback:
                 self.__callback()
 
-    def run(self):
+    async def run(self):
         """
         Override this method to implement actor behaviour
         """
@@ -54,9 +45,9 @@ class Actor:
         :return:
         """
         assert isinstance(message, Message), "Unsupported message - must be an instance of Message"
-        self.__queue_in.put(message.data)
+        self._queue_in.put(message.data)
 
-    def send_message(self, recipient, data):
+    async def send_message(self, recipient, data):
         """
         Send message to another actor using its id.
         :param priority:
@@ -66,9 +57,9 @@ class Actor:
         """
         msg = Message(recipient, data)
         self._queue_out.put(msg)
-        self.switch()
+        await self.switch()
 
-    def spawn(self, actor_class, *args, **kwargs):
+    async def spawn(self, actor_class, *args, **kwargs):
         """
         Spawns an actor and returns that actor id.
         :param actor_class:
@@ -77,27 +68,27 @@ class Actor:
         :return:
         """
         try:
-            while not self.__pipe_semaphore.acquire(False):
-                self.switch()
+            while not self._pipe_semaphore.acquire(False):
+                await self.switch()
             message = ActorCreationMessage(actor_class, *args, **kwargs)
             self._queue_out.put(message)
             receiver = message.receiver
 
             while not receiver.poll():
-                self.switch()
+                await self.switch()
 
             actor_id = receiver.recv()
             assert isinstance(actor_id, ActorId), "actor_id must be an instance of ActorId"
             receiver.close()
             return actor_id
         finally:
-            self.__pipe_semaphore.release()
+            self._pipe_semaphore.release()
 
-    def receive(self, timeout=None, predicate=lambda data: True):
+    async def receive(self, timeout=None, predicate=lambda data: True):
 
         def timed_out():
             if timeout is None:
-                return False
+              return False
             else:
                 return monotonic() - start <= timeout
 
@@ -106,16 +97,16 @@ class Actor:
         try:
             while not timed_out():
                 try:
-                    data = self.__queue_in.get_nowait()
+                    data = self._queue_in.get_nowait()
                     if predicate(data):
                         return data
                     else:
                         leftovers.append(data)
                 except Empty:
-                    self.switch()
+                    await self.switch()
         finally:
             for leftover in leftovers:
-                self.__queue_in.put(leftover)
+                self._queue_in.put(leftover)
 
         raise ReceiveTimedOut()
 
