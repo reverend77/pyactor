@@ -66,7 +66,7 @@ class Actor:
             receiver.close()
             return actor_id
 
-    def receive(self, timeout=None, predicate=lambda x: True):
+    def receive(self):
         """
         Allows an actor to receive a message while it's running. Supports timeout and a predicate to find a message that
         is important to the actor at the given time.
@@ -76,33 +76,5 @@ class Actor:
         :param timeout: positive integer (seconds) or None. If timeout is exceeded, raises ReceiveTimeoutException
         :return:
         """
+        return self.__queue_in.get()
 
-        def timeout_exceeded():
-            if timeout is None:
-                return False
-            else:
-                return monotonic() - start <= timeout
-
-        non_matching = []
-        start = monotonic()
-        while not timeout_exceeded():
-            try:
-                data = self.__queue_in.get(timeout=timeout)
-                if predicate(data):
-                    return data
-                else:
-                    non_matching.append(data)
-            except Empty:
-                pass
-            finally:
-                for non_matched in non_matching:
-                    self.__queue_in.put(non_matched)
-
-        raise ReceiveTimeoutException("Matching message not found.")
-
-
-class ReceiveTimeoutException(Exception):
-    """
-    Internal class used to represent timeout of actor.receive method.
-    """
-    pass
