@@ -1,9 +1,10 @@
 from queue import Queue
 from queue import Empty
-from threading import RLock
+from threading import RLock, Thread
 from time import sleep, monotonic
 from sys import exit
 from random import choice
+from greenlet import greenlet
 
 from pyactor.engine.messages import Message, ActorCreationMessage, ActorId, ExitMessage
 
@@ -21,10 +22,32 @@ class Node:
         self._alive = True
         self._pipe_semaphore = pipe_semaphore
 
+        self.__greenlet_thread = Thread(target=self.__run_actors)
+        self.__greenlet_thread.daemon = True
+
         actor_spawning_queues = [queue for id, queue in other_nodes.items() if id != 0] # 0 is id of external node
         if self._id != 0:
             actor_spawning_queues.append(queue_in)
         self._actor_spawning_queues = actor_spawning_queues
+        self.__greenlet_queue = Queue()
+        self.__greenlet_spawning_queue = Queue()
+
+    def __run_actors(self):
+        def spawn_greenlet():
+            while True:
+                try:
+                    next_greenlet = self.__greenlet_spawning_queue.get_nowait()
+                    next_greenlet.start()
+                except Empty:
+                    if self.__greenlet_queue.empty():
+                        sleep(0.5)
+                        continue
+                    self.__greenlet_queue.put(init)
+                    next_greenlet = self.__greenlet_queue.get()
+                    next_greenlet.switch()
+
+        init = greenlet(spawn_greenlet)
+        init.switch()
 
     @staticmethod
     def terminate():
@@ -39,6 +62,7 @@ class Node:
         self._external_queue_in.put(message)
 
     def start(self):
+        self.__greenlet_thread.start()
         while True:
             internal_message_received = self._handle_internal_message()
             external_message_received = False
@@ -138,9 +162,10 @@ class Node:
                 with self._lock:
                     del self._actors[actor.id]
 
-            actor = cls(actor_id, self._internal_queue_in, self._pipe_semaphore, *args, callback=remove_actor_ref, *kwargs)
+            actor = cls(actor_id, self._internal_queue_in, self._pipe_semaphore, self.__greenlet_queue,*args, callback=remove_actor_ref, *kwargs)
             self._actors[actor.id] = actor
-        actor.start()
+
+        self.__greenlet_spawning_queue.put(actor)
 
         sender = msg.sender
         sender.send(actor.id) # return actor id to the caller
