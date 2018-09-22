@@ -37,7 +37,8 @@ class TestActor(Actor):
 
 if __name__ == "__main__":
     endpoint = start_system()
-    endpoint.spawn(TestActor)
+    child = endpoint.spawn(TestActor)
+    endpoint.send_message(child, endpoint.id)
 
     counter = 0
     while True:
