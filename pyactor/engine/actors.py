@@ -74,15 +74,6 @@ class Actor:
             receiver.close()
             return actor_id
 
-    def receive(self, *args, **kwargs):
-        """
-        Allows an actor to receive a message while it's running. Supports timeout and a predicate to find a message that
-        is important to the actor at the given time.
-        It does not override filters of is_data_valid and requeues messages that do not pass filtering by predicate arg.
-
-        :param predicate: predicate used to filter the incoming messages (applied AFTER _is_data_valid)
-        :param timeout: positive integer (seconds) or None. If timeout is exceeded, raises ReceiveTimeoutException
-        :return:
-        """
-        return self.__queue_in.get(*args, **kwargs)
+    def receive(self, block=True, timeout=None):
+        return self.__queue_in.get(block=block, timeout=timeout)
 
