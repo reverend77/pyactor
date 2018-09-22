@@ -51,6 +51,10 @@ class Node:
         self._external_queue_in.put(message)
 
     def start(self):
+        loop = asyncio.new_event_loop()
+        loop.run_until_complete(self.__start())
+
+    async def __start(self):
         self._event_loop_thread.start()
         while True:
             internal_message_received = self._handle_internal_message()
