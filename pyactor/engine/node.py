@@ -1,8 +1,7 @@
 from queue import Queue
 from queue import Empty
-from threading import Thread, RLock
+from threading import RLock
 from time import sleep, monotonic
-import weakref
 from sys import exit
 from random import choice
 
@@ -18,7 +17,7 @@ class Node:
         self._gc_interval = gc_interval
         self._internal_queue_in = Queue()
 
-        self._actors = {}  # actor_id -> weak refs to actors
+        self._actors = {}
         self._lock = RLock()
         self._alive = True
         self._pipe_semaphore = pipe_semaphore
@@ -27,27 +26,6 @@ class Node:
         if self._id != 0:
             actor_spawning_queues.append(queue_in)
         self._actor_spawning_queues = actor_spawning_queues
-
-        self._thread = Thread(target=self.run)
-        self._thread.daemon = True
-
-    def run(self):
-        """
-        Garbage collector thread - removes references to terminated actors.
-        :return:
-        """
-        while self._alive:
-            sleep(self._gc_interval)
-            self.__gc()
-
-    def __gc(self):
-        """
-        Garbage collector.
-        :return:
-        """
-        with self._lock:
-            for actor_id in [actor for actor, ref in self._actors.items() if ref() is None]:
-                del self._actors[actor_id]
 
     @staticmethod
     def terminate():
@@ -62,7 +40,6 @@ class Node:
         self._external_queue_in.put(message)
 
     def start(self):
-        self._thread.start()
         while True:
             internal_message_received = self._handle_internal_message()
             external_message_received = False
@@ -137,13 +114,9 @@ class Node:
         :return:
         """
         with self._lock:
-            ref = self._actors.get(msg.recipient, None)
+            ref = self._get_actor_by_id(msg.recipient)
             if ref:  # is there such an actor?
-                ref = ref()
-                if ref:  # is actor thread still active?
-                    ref._enqueue_message(msg)
-                else:
-                    del self._actors[msg.recipient]
+                ref._enqueue_message(msg)
 
     def _send_message_to_remote_recipient(self, msg):
         """
@@ -160,8 +133,14 @@ class Node:
         args = msg.args
         kwargs = msg.kwargs
         with self._lock:
-            actor = cls(self._next_actor_id(), self._internal_queue_in, self._pipe_semaphore, *args, *kwargs)
-            self._actors[actor.id] = weakref.ref(actor)
+            actor_id = self._next_actor_id()
+
+            def remove_actor_ref():
+                with self._lock:
+                    del self._actors[actor.id]
+
+            actor = cls(actor_id, self._internal_queue_in, self._pipe_semaphore, *args, callback=remove_actor_ref, *kwargs)
+            self._actors[actor.id] = actor
         actor.start()
 
         sender = msg.sender
@@ -175,6 +154,10 @@ class Node:
             while actor_id in self._actors:
                 actor_id.actor_id -= 1
         return actor_id
+
+    def _get_actor_by_id(self, id):
+        with self._lock:
+            return self._actors.get(id, None)
 
 
 

@@ -44,3 +44,10 @@ class ExternalNode(Node):
         with self._lock:
             self._actors[actor_id] = weakref.ref(endpoint)
         return endpoint
+
+    def _get_actor_by_id(self, id):
+        ref = super()._get_actor_by_id(id)
+        if ref:
+            return ref()
+        else:
+            return None

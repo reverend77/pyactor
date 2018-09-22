@@ -9,7 +9,7 @@ class Actor:
     """
     Basic actor class.
     """
-    def __init__(self, identifier, queue_out, pipe_semaphore):
+    def __init__(self, identifier, queue_out, pipe_semaphore, callback=None):
         super().__init__()
         assert isinstance(identifier, ActorId), "identifier must be an ActorId"
         self.id = identifier
@@ -17,11 +17,19 @@ class Actor:
         self._queue_out = queue_out
         self._thread = None
         self.__pipe_semaphore = pipe_semaphore
+        self.__callback = callback
 
     def start(self):
-        self._thread = Thread(target=self.run)
+        self._thread = Thread(target=self.__run)
         self._thread.daemon = True
         self._thread.start()
+
+    def __run(self):
+        try:
+            self.run()
+        finally:
+            if self.__callback:
+                self.__callback()
 
     def run(self):
         """
