@@ -29,28 +29,19 @@ from time import sleep
 
 class TestActor(Actor):
     def run(self):
-        endpoint_pid, other_pids = self.receive(predicate=lambda x: isinstance(x, tuple))
+        endpoint_pid = self.receive()
+        self.send_message(endpoint_pid, None)
         while True:
-            try:
-                while True:
-                    self.receive(0.0001)
-                    self.send_message(endpoint_pid, None)
-            except ReceiveTimedOut:
-                for other in other_pids:
-                    self.send_message(other, None)
-
+            child_pid = self.spawn(self.__class__)
+            self.send_message(child_pid, endpoint_pid)
 
 if __name__ == "__main__":
     endpoint = start_system()
-    pids = [endpoint.spawn(TestActor) for __ in range(50)]
-
-    for pid in pids:
-        endpoint.send_message(pid, (endpoint.id, pids))
-        endpoint.send_message(pid, None)
+    endpoint.spawn(TestActor)
 
     counter = 0
     while True:
         endpoint.receive()
         counter += 1
-        print("Messages processed by nodes: {}".format(counter))
+        print("Active actors: {}".format(counter))
 
