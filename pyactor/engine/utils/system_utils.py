@@ -42,7 +42,7 @@ class TestActor(Actor):
 
 if __name__ == "__main__":
     endpoint = start_system()
-    pids = [endpoint.spawn(TestActor) for __ in range(1000)]
+    pids = [endpoint.spawn(TestActor) for __ in range(200)]
 
     for pid in pids:
         endpoint.send_message(pid, (endpoint.id, pids))
