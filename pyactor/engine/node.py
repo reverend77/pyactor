@@ -9,12 +9,11 @@ from pyactor.engine.messages import Message, ActorCreationMessage, ActorId, Exit
 
 
 class Node:
-    def __init__(self, node_id, queue_in, other_nodes, pipe_semaphore, gc_interval=30):
+    def __init__(self, node_id, queue_in, other_nodes, pipe_semaphore):
         super().__init__()
         self._id = node_id
         self._external_queue_in = queue_in
         self._other_nodes = other_nodes
-        self._gc_interval = gc_interval
         self._internal_queue_in = Queue()
 
         self._actors = {}
