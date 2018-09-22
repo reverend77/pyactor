@@ -1,7 +1,7 @@
 from pyactor.engine.node import Node
 from pyactor.engine.messages import Message, ExitMessage, ActorCreationMessage, Broadcast
 from pyactor.engine.external.endpoint import Endpoint
-
+import weakref
 from queue import Empty
 
 
@@ -44,4 +44,6 @@ class ExternalNode(Node):
 
     def create_endpoint(self):
         actor_id = self._next_actor_id()
-        return Endpoint(actor_id, self._internal_queue_in, self._pipe_semaphore)
+        endpoint = Endpoint(actor_id, self._internal_queue_in, self._pipe_semaphore)
+        self._actors[actor_id] = weakref.ref(endpoint)
+        return endpoint

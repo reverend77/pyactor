@@ -25,17 +25,16 @@ def start_system(nodes=cpu_count()):
 
 from pyactor.engine.actors import Actor
 from time import sleep
-from threading import active_count
+
 class TestActor(Actor):
     def run(self):
-            self.spawn(self.__class__)
-            self.spawn(self.__class__)
-            sleep(2)
-            print("Active actors: {}".format(active_count()))
+        endpoint_pid = self.receive()
+        self.send_message(endpoint_pid, None)
+
 
 if __name__ == "__main__":
     endpoint = start_system()
-    for __ in range(1000000):
-        pid = endpoint.spawn(TestActor)
-        endpoint.send_message(pid, [])
-        print(pid)
+    pid = endpoint.spawn(TestActor)
+    endpoint.send_message(pid, endpoint.id)
+    endpoint.receive()
+    print("Received!")
