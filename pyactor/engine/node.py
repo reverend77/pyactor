@@ -187,7 +187,8 @@ class GreenletNode:
                         continue
                     self.__scheduled_queue.put(init)
                     next_greenlet = self.__scheduled_queue.get()
-                    next_greenlet.switch()
+                    if next_greenlet != init:
+                        next_greenlet.switch()
 
         init = greenlet(spawn_greenlet)
         init.switch()
