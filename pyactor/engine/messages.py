@@ -51,15 +51,6 @@ class ExitMessage:
     pass
 
 
-class Broadcast(Message):
-    """
-    Utility class used to send a message to every actor in the system at the same time.
-    """
-    def __init__(self, data, source):
-        super().__init__(None, data)
-        self.source = source
-
-
 class ActorCreationMessage(Message):
     """
     Internally used message - ought to create an actor

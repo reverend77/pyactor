@@ -6,11 +6,10 @@ import weakref
 from sys import exit
 from random import choice
 
-from pyactor.engine.messages import Message, Broadcast, ActorCreationMessage, ActorId, ExitMessage
+from pyactor.engine.messages import Message, ActorCreationMessage, ActorId, ExitMessage
 
 
-# TODO make nodes communicate without a central process
-class Node(Thread):
+class Node:
     def __init__(self, node_id, queue_in, other_nodes, pipe_semaphore, gc_interval=30):
         super().__init__()
         self._id = node_id
@@ -28,6 +27,9 @@ class Node(Thread):
         if self._id != 0:
             actor_spawning_queues.append(queue_in)
         self._actor_spawning_queues = actor_spawning_queues
+
+        self._thread = Thread(target=self.run)
+        self._thread.daemon = True
 
     def run(self):
         """
@@ -60,7 +62,7 @@ class Node(Thread):
         self._external_queue_in.put(message)
 
     def start(self):
-        super().start()
+        self._thread.start()
         while True:
             internal_message_received = self._handle_internal_message()
             external_message_received = False
@@ -85,13 +87,9 @@ class Node(Thread):
 
         if isinstance(msg, ActorCreationMessage):
             """
-            An actor will be spawned, but it has yet to be determined where to spawn it.
+            An actor will eventually be spawned, but it has yet to be determined where to spawn it.
             """
             self._enqueue_actor_spawn_message(msg)
-
-        elif isinstance(msg, Broadcast):
-            self._send_message_to_remote_recipient(msg)
-            self.__broadcast_message_locally(msg)
 
         elif msg.recipient.node_id == self._id:
             self._send_message_to_local_recipient(msg)
@@ -128,10 +126,6 @@ class Node(Thread):
             Actor creation messages can only be handled if coming from external queue.
             """
             self.__spawn_actor(msg)
-
-        elif isinstance(msg, Broadcast):
-            self.__broadcast_message_locally(msg)
-
         else:
             self._send_message_to_local_recipient(msg)
         return True
@@ -157,13 +151,9 @@ class Node(Thread):
         :param msg:
         :return:
         """
-        if isinstance(msg, Broadcast):
-            for queue in self._other_nodes.values():
-                queue.put(msg)
-        else:
-            queue = self._other_nodes.get(msg.recipient.node_id, None)
-            if queue is not None:
-                queue.put(msg)
+        queue = self._other_nodes.get(msg.recipient.node_id, None)
+        if queue is not None:
+            queue.put(msg)
 
     def __spawn_actor(self, msg):
         cls = msg.actor_class
@@ -185,20 +175,6 @@ class Node(Thread):
             while actor_id in self._actors:
                 actor_id.actor_id -= 1
         return actor_id
-
-    def __broadcast_message_locally(self, msg):
-        """
-        Used to broadcast a Broadcast message to all actors belonging to current process.
-        :param msg:
-        :return:
-        """
-        with self._lock:
-            for actor_id, ref in self._actors:
-                ref = ref()
-                if ref:
-                    ref._enqueue_message(msg)
-                else:
-                    del self._actors[actor_id]
 
 
 

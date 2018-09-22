@@ -1,5 +1,5 @@
 from pyactor.engine.node import Node
-from pyactor.engine.messages import Message, ExitMessage, ActorCreationMessage, Broadcast
+from pyactor.engine.messages import Message, ExitMessage, ActorCreationMessage
 from pyactor.engine.external.endpoint import Endpoint
 import weakref
 from queue import Empty
@@ -27,13 +27,9 @@ class ExternalNode(Node):
 
         if isinstance(msg, ActorCreationMessage):
             """
-            An actor will be spawned, but it has yet to be determined where to spawn it.
+            An actor will be spawned, but not on external node.
             """
             self._enqueue_actor_spawn_message(msg)
-
-        elif isinstance(msg, Broadcast):
-            self._send_message_to_remote_recipient(msg)
-            self.__broadcast_message_locally(msg)
 
         elif msg.recipient.node_id == self._id:
             self._send_message_to_local_recipient(msg)
@@ -45,5 +41,6 @@ class ExternalNode(Node):
     def create_endpoint(self):
         actor_id = self._next_actor_id()
         endpoint = Endpoint(actor_id, self._internal_queue_in, self._pipe_semaphore)
-        self._actors[actor_id] = weakref.ref(endpoint)
+        with self._lock:
+            self._actors[actor_id] = weakref.ref(endpoint)
         return endpoint

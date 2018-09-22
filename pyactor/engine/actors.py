@@ -2,20 +2,19 @@ from threading import Thread
 from time import monotonic
 from queue import Empty, Queue
 
-from pyactor.engine.messages import Message, ActorId, Broadcast, ActorCreationMessage
+from pyactor.engine.messages import Message, ActorId, ActorCreationMessage
 
 
 class Actor:
     """
     Basic actor class.
     """
-    def __init__(self, identifier, queue_out, pipe_semaphore, accept_broadcasts=True):
+    def __init__(self, identifier, queue_out, pipe_semaphore):
         super().__init__()
         assert isinstance(identifier, ActorId), "identifier must be an ActorId"
         self.id = identifier
         self.__queue_in = Queue()
         self._queue_out = queue_out
-        self.__accept_broadcasts = accept_broadcasts
         self._thread = None
         self.__pipe_semaphore = pipe_semaphore
 
@@ -37,23 +36,7 @@ class Actor:
         :return:
         """
         assert isinstance(message, Message), "Unsupported message - must be an instance of Message"
-
-        if isinstance(message, Broadcast) and (not self.__accept_broadcasts or message.source == self.id):
-            """
-            Ignore broadcast if this actor is the original source or if this actor does not accept broadcasts.
-            """
-            return
-        elif self._is_data_valid(message.data):
-            self.__queue_in.put(message.data)
-
-    def _is_data_valid(self, data):
-        """
-        Method responsible of filtering unwanted messages.
-        By default, always returns True.
-        :param data: content of a message
-        :return: boolean indicating whether this message should be processed
-        """
-        return True
+        self.__queue_in.put(message.data)
 
     def send_message(self, recipient, data):
         """
@@ -64,16 +47,6 @@ class Actor:
         :return:
         """
         msg = Message(recipient, data)
-        self._queue_out.put(msg)
-
-    def send_broadcast_message(self, data):
-        """
-        Send message to every other actor in the system.
-        :param priority:
-        :param data:
-        :return:
-        """
-        msg = Broadcast(data, source=self.id)
         self._queue_out.put(msg)
 
     def spawn(self, actor_class, *args, **kwargs):
