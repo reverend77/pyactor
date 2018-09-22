@@ -74,7 +74,7 @@ class Actor:
             receiver.close()
             return actor_id
 
-    def receive(self):
+    def receive(self, *args, **kwargs):
         """
         Allows an actor to receive a message while it's running. Supports timeout and a predicate to find a message that
         is important to the actor at the given time.
@@ -84,5 +84,5 @@ class Actor:
         :param timeout: positive integer (seconds) or None. If timeout is exceeded, raises ReceiveTimeoutException
         :return:
         """
-        return self.__queue_in.get()
+        return self.__queue_in.get(*args, **kwargs)
 

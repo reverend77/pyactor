@@ -1,6 +1,7 @@
 from multiprocessing import Queue, Process, Semaphore
 from os import cpu_count
 from threading import Thread
+from queue import Empty
 
 from pyactor.engine.external.node import ExternalNode
 from pyactor.engine.utils.node_utils import spawn_and_start_node
@@ -28,13 +29,27 @@ from time import sleep
 
 class TestActor(Actor):
     def run(self):
-        endpoint_pid = self.receive()
-        self.send_message(endpoint_pid, None)
+        endpoint_pid, other_pids = self.receive()
+        while True:
+            try:
+                while True:
+                    self.receive(timeout=0.1)
+                    self.send_message(endpoint_pid, None)
+            except Empty:
+                for other in other_pids:
+                    self.send_message(other, None)
 
 
 if __name__ == "__main__":
     endpoint = start_system()
-    pid = endpoint.spawn(TestActor)
-    endpoint.send_message(pid, endpoint.id)
-    endpoint.receive()
-    print("Received!")
+    pids = [endpoint.spawn(TestActor) for __ in range(1000)]
+
+    for pid in pids:
+        endpoint.send_message(pid, (endpoint.id, pids))
+
+    counter = 0
+    while True:
+        endpoint.receive()
+        counter += 1
+        print("Messages processed by nodes: {}".format(counter))
+
