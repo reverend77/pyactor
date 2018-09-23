@@ -2,6 +2,7 @@ from pyactor.engine.actors import Actor, ReceiveTimedOut
 from pyactor.engine.messages import ExitMessage, ActorCreationMessage, ActorId, Message
 from time import monotonic, sleep
 from queue import Empty
+from copy import deepcopy
 
 
 class Endpoint(Actor):
@@ -15,7 +16,7 @@ class Endpoint(Actor):
     def run(self):
         raise NotImplementedError("{} does not support run method.".format(Endpoint))
 
-    def start(self):
+    def start(self, **kwargs):
         raise NotImplementedError("{} does not support start method.".format(Endpoint))
 
     def terminate(self):
@@ -79,5 +80,7 @@ class Endpoint(Actor):
         :param data:
         :return:
         """
+        if recipient.node_id == self.id.node_id:
+            data = deepcopy(data)
         msg = Message(recipient, data)
         self._queue_out.put(msg)
