@@ -45,7 +45,7 @@ class FibonacciActor(Actor):
 
     async def run(self):
         if self.number <= 1:
-            await self.send_message(self.parent_pid,1)
+            await self.send_message(self.parent_pid, 1)
         else:
             await self.spawn(self.__class__, self.id, self.number - 1)
             await self.spawn(self.__class__, self.id, self.number - 2)
@@ -53,10 +53,15 @@ class FibonacciActor(Actor):
             number2 = await self.receive()
             await self.send_message(self.parent_pid, number1 + number2)
 
+
 if __name__ == "__main__":
     endpoint = start_system()
-    for num in range(1000):
-        endpoint.spawn(FibonacciActor, endpoint.id, num)
-        result = endpoint.receive()
-        print("{}. Fibonacci number: {}".format(num + 1, result))
+    first = endpoint.spawn(TestActor)
+    endpoint.send_message(first, endpoint.id)
+
+    counter = 0
+    while True:
+        endpoint.receive()
+        counter += 1
+        print(counter)
 
