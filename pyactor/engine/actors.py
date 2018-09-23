@@ -10,16 +10,15 @@ class Actor:
     Basic actor class.
     """
 
-    def __init__(self, identifier):
-        super().__init__()
-        assert isinstance(identifier, ActorId), "identifier must be an ActorId"
-        self.id = identifier
+    def __init__(self):
+        self.id = None
         self._queue_in = Queue()
         self._queue_out = None
         self._pipe_semaphore = None
         self.__callback = None
 
-    def set_connection_properties(self, queue_out, pipe_semaphore, callback=None):
+    def set_connection_properties(self, identifier, queue_out, pipe_semaphore, callback=None):
+        self.id = identifier
         self._queue_out = queue_out
         self._pipe_semaphore = pipe_semaphore
         self.__callback = callback
@@ -31,6 +30,9 @@ class Actor:
         asyncio.run_coroutine_threadsafe(self.run(), loop)
 
     async def __run(self):
+        assert self.id is not None
+        assert self._queue_out is not None
+        assert self._pipe_semaphore is not None
         try:
             await self.run()
         finally:

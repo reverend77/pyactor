@@ -154,8 +154,8 @@ class Node:
                 with self._lock:
                     del self._actors[actor.id]
 
-            actor = cls(actor_id, *args, *kwargs)
-            actor.set_connection_properties(self._internal_queue_in, self._pipe_semaphore, callback=remove_actor_ref)
+            actor = cls(*args, *kwargs)
+            actor.set_connection_properties(actor_id, self._internal_queue_in, self._pipe_semaphore, callback=remove_actor_ref)
             self._actors[actor.id] = actor
 
             while self._event_loop is None:

@@ -9,8 +9,8 @@ class Endpoint(Actor):
     Endpoint actor - allows to send messages from outside of the actor system.
     """
 
-    def __init__(self, identifier):
-        super().__init__(identifier)
+    def __init__(self):
+        super().__init__()
 
     def run(self):
         raise NotImplementedError("{} does not support run method.".format(Endpoint))

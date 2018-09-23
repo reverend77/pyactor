@@ -38,8 +38,8 @@ class TestActor(Actor):
 
 
 class FibonacciActor(Actor):
-    def __init__(self, identifier, parent_pid, number):
-        super().__init__(identifier)
+    def __init__(self, parent_pid, number):
+        super().__init__()
         self.parent_pid = parent_pid
         self.number = number
 
