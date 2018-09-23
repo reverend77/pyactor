@@ -39,8 +39,10 @@ class ExternalNode(Node):
         return True
 
     def create_endpoint(self):
+        # TODO endpoint cleanup
         actor_id = self._next_actor_id()
-        endpoint = Endpoint(actor_id, self._internal_queue_in, self._pipe_semaphore)
+        endpoint = Endpoint(actor_id)
+        endpoint.set_connection_properties(self._internal_queue_in, self._pipe_semaphore)
         with self._lock:
             self._actors[actor_id] = weakref.ref(endpoint)
         return endpoint

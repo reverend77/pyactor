@@ -131,7 +131,7 @@ class Node:
         with self._lock:
             ref = self._get_actor_by_id(msg.recipient)
             if ref:  # is there such an actor?
-                ref._enqueue_message(msg)
+                ref.enqueue_message(msg)
 
     def _send_message_to_remote_recipient(self, msg):
         """
@@ -154,7 +154,8 @@ class Node:
                 with self._lock:
                     del self._actors[actor.id]
 
-            actor = cls(actor_id, self._internal_queue_in, self._pipe_semaphore, *args, callback=remove_actor_ref, *kwargs)
+            actor = cls(actor_id, *args, *kwargs)
+            actor.set_connection_properties(self._internal_queue_in, self._pipe_semaphore, callback=remove_actor_ref)
             self._actors[actor.id] = actor
 
             while self._event_loop is None:

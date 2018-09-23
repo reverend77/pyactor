@@ -10,11 +10,16 @@ class Actor:
     Basic actor class.
     """
 
-    def __init__(self, identifier, queue_out, pipe_semaphore, callback=None):
+    def __init__(self, identifier):
         super().__init__()
         assert isinstance(identifier, ActorId), "identifier must be an ActorId"
         self.id = identifier
         self._queue_in = Queue()
+        self._queue_out = None
+        self._pipe_semaphore = None
+        self.__callback = None
+
+    def set_connection_properties(self, queue_out, pipe_semaphore, callback=None):
         self._queue_out = queue_out
         self._pipe_semaphore = pipe_semaphore
         self.__callback = callback
@@ -29,8 +34,7 @@ class Actor:
         try:
             await self.run()
         finally:
-            if self.__callback:
-                self.__callback()
+            self.__callback()
 
     async def run(self):
         """
@@ -38,7 +42,7 @@ class Actor:
         """
         raise NotImplementedError("run method not implemented on actor {}".format(self.id))
 
-    def _enqueue_message(self, message):
+    def enqueue_message(self, message):
         """
         Used to put a data included in the message into the queue.
         :param message: message to be enqueued
