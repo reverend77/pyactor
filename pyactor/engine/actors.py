@@ -66,6 +66,8 @@ class Actor:
         :param data:
         :return:
         """
+        if recipient.node_id == self.id.node_id:
+            data = deepcopy(data)
         msg = Message(recipient, data)
         self._queue_out.put(msg)
         await self.switch()
@@ -110,7 +112,7 @@ class Actor:
                 try:
                     data = self._queue_in.get_nowait()
                     if predicate(data):
-                        return deepcopy(data)
+                        return data
                     else:
                         leftovers.append(data)
                 except Empty:
