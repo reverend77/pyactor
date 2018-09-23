@@ -11,14 +11,18 @@ class Actor:
     """
 
     def __init__(self):
-        self.id = None
+        self.__id = None
         self._queue_in = Queue()
         self._queue_out = None
         self._pipe_semaphore = None
         self.__callback = None
 
+    @property
+    def id(self):
+        return self.__id
+
     def set_connection_properties(self, identifier, queue_out, pipe_semaphore, callback=None):
-        self.id = identifier
+        self.__id = identifier
         self._queue_out = queue_out
         self._pipe_semaphore = pipe_semaphore
         self.__callback = callback
@@ -30,7 +34,7 @@ class Actor:
         asyncio.run_coroutine_threadsafe(self.run(), loop)
 
     async def __run(self):
-        assert self.id is not None
+        assert self.__id is not None
         assert self._queue_out is not None
         assert self._pipe_semaphore is not None
         try:
