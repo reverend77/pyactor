@@ -1,6 +1,7 @@
-from time import monotonic, sleep
+from time import monotonic
 from queue import Empty, Queue
 import asyncio
+from copy import deepcopy
 
 from pyactor.engine.messages import Message, ActorId, ActorCreationMessage
 
@@ -109,7 +110,7 @@ class Actor:
                 try:
                     data = self._queue_in.get_nowait()
                     if predicate(data):
-                        return data
+                        return deepcopy(data)
                     else:
                         leftovers.append(data)
                 except Empty:
