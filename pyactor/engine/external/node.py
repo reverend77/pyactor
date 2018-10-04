@@ -6,8 +6,8 @@ from queue import Empty
 
 
 class ExternalNode(Node):
-    def __init__(self, queue_in, other_nodes, pipe_semaphore):
-        super().__init__(0, queue_in, other_nodes, pipe_semaphore)
+    def __init__(self, queue_in, other_nodes, node_load, pipe_semaphore):
+        super().__init__(0, queue_in, other_nodes, node_load, pipe_semaphore)
 
     def _handle_internal_message(self):
         """

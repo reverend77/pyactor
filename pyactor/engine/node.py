@@ -3,14 +3,13 @@ from queue import Empty
 from threading import RLock, Thread
 from time import sleep, monotonic
 from sys import exit
-from random import choice
 import asyncio
 
 from pyactor.engine.messages import Message, ActorCreationMessage, ActorId, ExitMessage
 
 
 class Node:
-    def __init__(self, node_id, queue_in, other_nodes, pipe_semaphore):
+    def __init__(self, node_id, queue_in, other_nodes, node_load, pipe_semaphore):
         super().__init__()
         self._id = node_id
         self._external_queue_in = queue_in
@@ -22,10 +21,11 @@ class Node:
         self._alive = True
         self._pipe_semaphore = pipe_semaphore
 
-        actor_spawning_queues = [queue for id, queue in other_nodes.items() if id != 0] # 0 is id of external node
+        actor_spawning_queues = {id:queue for id, queue in other_nodes.items() if id != 0} # 0 is id of external node
         if self._id != 0:
-            actor_spawning_queues.append(queue_in)
+            actor_spawning_queues[self._id] = queue_in
         self._actor_spawning_queues = actor_spawning_queues
+        self._node_load = node_load
 
         self._event_loop_thread = Thread(target=self.__event_loop_method)
         self._event_loop_thread.daemon = True
@@ -96,7 +96,8 @@ class Node:
         :param msg:
         :return:
         """
-        chosen_queue = choice(self._actor_spawning_queues)
+        chosen_node_id = min(self._node_load.keys(), key=lambda k: self._node_load[k].value)
+        chosen_queue = self._actor_spawning_queues[chosen_node_id]
         chosen_queue.put(msg)
 
     def _handle_external_message(self):
@@ -144,6 +145,9 @@ class Node:
             queue.put(msg)
 
     def __spawn_actor(self, msg):
+        self_load = self._node_load[self._id]
+        with self_load.get_lock():
+            self_load.value += 1
         cls = msg.actor_class
         args = msg.args
         kwargs = msg.kwargs
@@ -151,6 +155,8 @@ class Node:
             actor_id = self._next_actor_id()
 
             def remove_actor_ref():
+                with self_load.get_lock():
+                    self_load.value -= 1
                 with self._lock:
                     del self._actors[actor.id]
 

@@ -1,14 +1,14 @@
-from multiprocessing import Queue, Process, Semaphore
+from multiprocessing import Queue, Process, Semaphore, Value
 from os import cpu_count
 from threading import Thread
-from queue import Empty
 
 from pyactor.engine.external.node import ExternalNode
 from pyactor.engine.utils.node_utils import spawn_and_start_node
 
 
-def _start_external_node(queue_in, other_queues_out, pipe_semaphore):
-    node = ExternalNode(queue_in, {id: queue for id, queue in other_queues_out.items() if id != 0}, pipe_semaphore)
+def _start_external_node(queue_in, other_queues_out, node_load, pipe_semaphore):
+    node = ExternalNode(queue_in, {id: queue for id, queue in other_queues_out.items() if id != 0}, node_load,
+                        pipe_semaphore)
     endpoint = node.create_endpoint()
     Thread(target=node.start).start()
     return endpoint
@@ -18,14 +18,14 @@ def start_system(nodes=cpu_count()):
     queues = {i: Queue() for i in range(nodes + 1)}
 
     pipe_semaphore = Semaphore(1000)
+    node_load = {node_id: Value("Q", 0) for node_id in range(1, nodes + 1)}
     for id in range(1, nodes + 1):
-        proc = Process(target=spawn_and_start_node, args=(id, queues[id], queues, pipe_semaphore))
+        proc = Process(target=spawn_and_start_node, args=(id, queues[id], queues, node_load, pipe_semaphore))
         proc.start()
-    return _start_external_node(queues[0], queues, pipe_semaphore)
+    return _start_external_node(queues[0], queues, node_load, pipe_semaphore)
 
 
-from pyactor.engine.actors import Actor, ReceiveTimedOut, ActorId
-from time import sleep
+from pyactor.engine.actors import Actor, ActorId
 
 
 class TestActor(Actor):
@@ -64,4 +64,3 @@ if __name__ == "__main__":
         endpoint.receive()
         counter += 1
         print(counter)
-
