@@ -12,7 +12,7 @@ class ActorId:
 
         self.node_id = node_id
         self.actor_id = actor_id
-        self.creation_time = monotonic()
+        self.creation_time = int(monotonic() * 1e9)
 
     def __eq__(self, other):
         if isinstance(other, ActorId):
@@ -41,7 +41,7 @@ class Message:
         assert isinstance(recipient, ActorId) or recipient is None, "recipient must be a string identifier"
         self.data = data
         self.recipient = recipient
-        self.creation_time = monotonic()
+        self.creation_time = int(monotonic() * 1e9)
 
     def __repr__(self):
         return "Message({},{})".format(self.recipient, self.data)
