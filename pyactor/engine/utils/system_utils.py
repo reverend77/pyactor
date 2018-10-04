@@ -4,6 +4,7 @@ from threading import Thread
 
 from pyactor.engine.external.node import ExternalNode
 from pyactor.engine.utils.node_utils import spawn_and_start_node
+from pyactor.engine.utils.lock import RWLock
 
 
 def _start_external_node(queue_in, other_queues_out, node_load, scheduler_lock):
@@ -15,7 +16,7 @@ def _start_external_node(queue_in, other_queues_out, node_load, scheduler_lock):
 
 def start_system(nodes=cpu_count()):
     queues = {i: Queue() for i in range(nodes + 1)}
-    scheduler_lock = Lock()
+    scheduler_lock = RWLock()
 
     node_load = {node_id: Value("Q", 0, lock=False) for node_id in range(1, nodes + 1)}
     for id in range(1, nodes + 1):

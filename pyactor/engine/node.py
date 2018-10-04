@@ -96,9 +96,14 @@ class Node:
         :param msg:
         :return:
         """
-        with self._scheduler_lock:
-            chosen_node_id = min(self._node_load.keys(), key=lambda k: self._node_load[k].value)
-            self._node_load[chosen_node_id].value += 1
+        self._scheduler_lock.lock_read()
+        chosen_node_id = min(self._node_load.keys(), key=lambda k: self._node_load[k].value)
+        self._scheduler_lock.unlock_read()
+
+        self._scheduler_lock.lock_write()
+        self._node_load[chosen_node_id].value += 1
+        self._scheduler_lock.unlock_write()
+
         chosen_queue = self._actor_spawning_queues[chosen_node_id]
         chosen_queue.put(msg)
 
@@ -154,8 +159,9 @@ class Node:
             actor_id = self._next_actor_id()
 
             def remove_actor_ref():
-                with self._scheduler_lock:
-                    self._node_load[self._id].value -= 1
+                self._scheduler_lock.lock_write()
+                self._node_load[self._id].value -= 1
+                self._scheduler_lock.unlock_write()
                 with self._lock:
                     del self._actors[actor.id]
 
