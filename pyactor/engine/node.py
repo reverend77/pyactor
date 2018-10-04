@@ -5,7 +5,7 @@ from time import sleep, monotonic
 from sys import exit
 import asyncio
 
-from pyactor.engine.messages import Message, ActorCreationMessage, ActorId, ExitMessage
+from pyactor.engine.messages import Message, ActorCreationMessage, ActorId, ExitMessage, ActorCreationResponse
 
 
 class Node:
@@ -168,9 +168,7 @@ class Node:
                 sleep(0.001)
             actor.start(self._event_loop)
 
-        sender = msg.sender
-        sender.send(actor.id) # return actor id to the caller
-        sender.close()
+        self._internal_queue_in.put(ActorCreationResponse(msg.source, actor_id))
 
     def _next_actor_id(self):
         internal_id = int(monotonic() * 1e9)

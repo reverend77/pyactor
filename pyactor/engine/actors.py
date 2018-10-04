@@ -3,7 +3,7 @@ from queue import Empty, Queue
 import asyncio
 from copy import deepcopy
 
-from pyactor.engine.messages import Message, ActorId, ActorCreationMessage
+from pyactor.engine.messages import Message, ActorId, ActorCreationMessage, ActorCreationResponse
 
 
 class Actor:
@@ -17,6 +17,7 @@ class Actor:
         self._queue_out = None
         self._pipe_semaphore = None
         self.__callback = None
+        self._spawn_return_queue = Queue(maxsize=1)
 
     @property
     def id(self):
@@ -56,7 +57,10 @@ class Actor:
         :return:
         """
         assert isinstance(message, Message), "Unsupported message - must be an instance of Message"
-        self._queue_in.put(message.data)
+        if isinstance(message, ActorCreationResponse):
+            self._spawn_return_queue.put(message.data)
+        else:
+            self._queue_in.put(message.data)
 
     async def send_message(self, recipient, data):
         """
@@ -83,16 +87,14 @@ class Actor:
         try:
             while not self._pipe_semaphore.acquire(False):
                 await self.switch()
-            message = ActorCreationMessage(actor_class, *args, **kwargs)
+            message = ActorCreationMessage(actor_class, self.__id, *args, **kwargs)
             self._queue_out.put(message)
-            receiver = message.receiver
 
-            while not receiver.poll():
+            while self._spawn_return_queue.empty():
                 await self.switch()
 
-            actor_id = receiver.recv()
+            actor_id = self._spawn_return_queue.get()
             assert isinstance(actor_id, ActorId), "actor_id must be an instance of ActorId"
-            receiver.close()
             return actor_id
         finally:
             self._pipe_semaphore.release()

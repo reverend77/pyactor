@@ -39,12 +39,10 @@ class Endpoint(Actor):
         try:
             self._pipe_semaphore.acquire(True)
 
-            message = ActorCreationMessage(actor_class, *args, **kwargs)
+            message = ActorCreationMessage(actor_class, self.id, *args, **kwargs)
             self._queue_out.put(message)
-            receiver = message.receiver
-            actor_id = receiver.recv()
+            actor_id = self._spawn_return_queue.get()
             assert isinstance(actor_id, ActorId), "actor_id must be an instance of ActorId"
-            receiver.close()
             return actor_id
         finally:
             self._pipe_semaphore.release()

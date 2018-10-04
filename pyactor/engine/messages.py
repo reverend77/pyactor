@@ -55,10 +55,19 @@ class ActorCreationMessage(Message):
     """
     Internally used message - ought to create an actor
     """
-    def __init__(self, actor_class, *args, **kwargs):
+    def __init__(self, actor_class, source, *args, **kwargs):
         super().__init__(None, None)
         self.actor_class = actor_class
         self.args = args
         self.kwargs = kwargs
         self.receiver, self.sender = Pipe(False)
+        self.source = source
+
+
+class ActorCreationResponse(Message):
+    """
+    Actor has been created - this message contains its id.
+    """
+    def __init__(self, recipient, new_id):
+        super().__init__(recipient, new_id)
 
