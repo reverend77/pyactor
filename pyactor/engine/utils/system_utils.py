@@ -61,7 +61,6 @@ if __name__ == "__main__":
 
     counter = 0
     while True:
-        print(endpoint.node_load)
         endpoint.receive()
-        #counter += 1
-        #print(counter)
+        counter += 1
+        print(counter)
