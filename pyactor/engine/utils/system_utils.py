@@ -1,14 +1,15 @@
-from multiprocessing import Queue, Process, Value, Lock
+from multiprocessing import Queue, Process, Value
 from os import cpu_count
 from threading import Thread
 
 from pyactor.engine.external.node import ExternalNode
-from pyactor.engine.utils.node_utils import spawn_and_start_node
 from pyactor.engine.utils.lock import RWLock
+from pyactor.engine.utils.node_utils import spawn_and_start_node
 
 
 def _start_external_node(queue_in, other_queues_out, node_load, scheduler_lock):
-    node = ExternalNode(queue_in, {id: queue for id, queue in other_queues_out.items() if id != 0}, node_load, scheduler_lock)
+    node = ExternalNode(queue_in, {id: queue for id, queue in other_queues_out.items() if id != 0}, node_load,
+                        scheduler_lock)
     endpoint = node.create_endpoint()
     Thread(target=node.start).start()
     return endpoint
@@ -56,11 +57,8 @@ class FibonacciActor(Actor):
 
 if __name__ == "__main__":
     endpoint = start_system()
-    first = endpoint.spawn(TestActor)
-    endpoint.send_message(first, endpoint.id)
-
-    counter = 0
-    while True:
-        endpoint.receive()
-        counter += 1
-        print(counter)
+    for num in range(1000):
+        endpoint.spawn(FibonacciActor, endpoint.id, num)
+        result = endpoint.receive()
+        print("{}. Fibonacci number: {}".format(num + 1, result))
+        print(endpoint.node_load)
