@@ -1,29 +1,33 @@
-from pyactor.engine.actors import Actor, ReceiveTimedOut
-from pyactor.engine.messages import ExitMessage, ActorCreationMessage, ActorId, Message
+from pyactor.engine.actors import ReceiveTimedOut
+from pyactor.engine.messages import ExitMessage, ActorCreationMessage, ActorId, Message, ActorCreationResponse
 from time import monotonic, sleep
 from queue import Empty
 from copy import deepcopy
 from types import MappingProxyType
+from queue import Queue
 
 
-class Endpoint(Actor):
+class Endpoint:
     """
     Endpoint actor - allows to send messages from outside of the actor system.
     """
 
     def __init__(self, node_load):
-        super().__init__()
         self.__node_load = MappingProxyType(node_load)
+        self.__id = None
+        self._queue_in = Queue()
+        self._queue_out = None
+        self._pipe_semaphore = None
+        self.__callback = None
+        self._spawn_return_queue = Queue(maxsize=1)
+
+    @property
+    def id(self):
+        return self.__id
 
     @property
     def node_load(self):
         return {id: value.value for id, value in self.__node_load.items()}
-
-    def run(self):
-        raise NotImplementedError("{} does not support run method.".format(Endpoint))
-
-    def start(self, **kwargs):
-        raise NotImplementedError("{} does not support start method.".format(Endpoint))
 
     def terminate(self):
         self._queue_out.put(ExitMessage())
@@ -83,3 +87,19 @@ class Endpoint(Actor):
             data = deepcopy(data)
         msg = Message(recipient, data)
         self._queue_out.put(msg)
+
+    def set_connection_properties(self, identifier, queue_out):
+        self.__id = identifier
+        self._queue_out = queue_out
+
+    def enqueue_message(self, message):
+        """
+        Used to put a data included in the message into the queue.
+        :param message: message to be enqueued
+        :return:
+        """
+        assert isinstance(message, Message), "Unsupported message - must be an instance of Message"
+        if isinstance(message, ActorCreationResponse):
+            self._spawn_return_queue.put(message.data)
+        else:
+            self._queue_in.put(message.data)
