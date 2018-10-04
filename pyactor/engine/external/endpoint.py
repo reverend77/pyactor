@@ -3,6 +3,7 @@ from pyactor.engine.messages import ExitMessage, ActorCreationMessage, ActorId, 
 from time import monotonic, sleep
 from queue import Empty
 from copy import deepcopy
+from types import MappingProxyType
 
 
 class Endpoint(Actor):
@@ -10,8 +11,13 @@ class Endpoint(Actor):
     Endpoint actor - allows to send messages from outside of the actor system.
     """
 
-    def __init__(self):
+    def __init__(self, node_load):
         super().__init__()
+        self.__node_load = MappingProxyType(node_load)
+
+    @property
+    def node_load(self):
+        return {id: value.value for id, value in self.__node_load.items()}
 
     def run(self):
         raise NotImplementedError("{} does not support run method.".format(Endpoint))
