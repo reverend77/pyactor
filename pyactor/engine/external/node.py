@@ -8,7 +8,7 @@ from pyactor.engine.messages import ActorId
 
 
 class ExternalNode:
-    def __init__(self, queue_in, other_nodes, node_load):
+    def __init__(self, queue_in, other_nodes, node_load, scheduler_lock):
         super().__init__()
         self._id = 0
         self._external_queue_in = queue_in
@@ -25,6 +25,7 @@ class ExternalNode:
         self._actor_spawning_queues = actor_spawning_queues
         self._node_load = node_load
         self.__worker = Thread(target=self.__start)
+        self._scheduler_lock = scheduler_lock
 
     def start(self):
         self.__worker.start()
@@ -87,7 +88,9 @@ class ExternalNode:
         :param msg:
         :return:
         """
-        chosen_node_id = min(self._node_load.keys(), key=lambda k: self._node_load[k].value)
+        with self._scheduler_lock:
+            chosen_node_id = min(self._node_load.keys(), key=lambda k: self._node_load[k].value)
+            self._node_load[chosen_node_id].value += 1
         chosen_queue = self._actor_spawning_queues[chosen_node_id]
         chosen_queue.put(msg)
 

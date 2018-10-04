@@ -9,7 +9,7 @@ from pyactor.engine.messages import Message, ActorCreationMessage, ActorId, Exit
 
 
 class Node:
-    def __init__(self, node_id, queue_in, other_nodes, node_load):
+    def __init__(self, node_id, queue_in, other_nodes, node_load, scheduler_lock):
         super().__init__()
         self._id = node_id
         self._external_queue_in = queue_in
@@ -28,6 +28,7 @@ class Node:
 
         self._event_loop_thread = Thread(target=self.__event_loop_method)
         self._event_loop_thread.daemon = True
+        self._scheduler_lock = scheduler_lock
 
         self._event_loop = None
 
@@ -95,7 +96,9 @@ class Node:
         :param msg:
         :return:
         """
-        chosen_node_id = min(self._node_load.keys(), key=lambda k: self._node_load[k].value)
+        with self._scheduler_lock:
+            chosen_node_id = min(self._node_load.keys(), key=lambda k: self._node_load[k].value)
+            self._node_load[chosen_node_id].value += 1
         chosen_queue = self._actor_spawning_queues[chosen_node_id]
         chosen_queue.put(msg)
 
@@ -144,9 +147,6 @@ class Node:
             queue.put(msg)
 
     def __spawn_actor(self, msg):
-        self_load = self._node_load[self._id]
-        with self_load.get_lock():
-            self_load.value += 1
         cls = msg.actor_class
         args = msg.args
         kwargs = msg.kwargs
@@ -154,8 +154,8 @@ class Node:
             actor_id = self._next_actor_id()
 
             def remove_actor_ref():
-                with self_load.get_lock():
-                    self_load.value -= 1
+                with self._scheduler_lock:
+                    self._node_load[self._id].value -= 1
                 with self._lock:
                     del self._actors[actor.id]
 
