@@ -17,7 +17,7 @@ def start_system(nodes=cpu_count()):
     queues = {i: Queue() for i in range(nodes + 1)}
     scheduler_lock = Lock()
 
-    node_load = {node_id: Value("Q", 0) for node_id in range(1, nodes + 1)}
+    node_load = {node_id: Value("Q", 0, lock=False) for node_id in range(1, nodes + 1)}
     for id in range(1, nodes + 1):
         proc = Process(target=spawn_and_start_node, args=(id, queues[id], queues, node_load, scheduler_lock))
         proc.start()
