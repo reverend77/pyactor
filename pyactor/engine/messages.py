@@ -60,7 +60,6 @@ class ActorCreationMessage(Message):
         self.actor_class = actor_class
         self.args = args
         self.kwargs = kwargs
-        self.receiver, self.sender = Pipe(False)
         self.source = source
 
 
