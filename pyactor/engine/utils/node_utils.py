@@ -1,7 +1,7 @@
 from pyactor.engine.node import Node
 
 
-def spawn_and_start_node(node_id, queue_in, node_queues, node_load, pipe_semaphore):
+def spawn_and_start_node(node_id, queue_in, node_queues, node_load):
     """
     Method that ought to be run in a separate process. This process then becomes a node.
     :param node_id:
@@ -11,5 +11,5 @@ def spawn_and_start_node(node_id, queue_in, node_queues, node_load, pipe_semapho
     :return:
     """
     del node_queues[node_id]  # remove redundant reference to self
-    node = Node(node_id, queue_in, node_queues, node_load, pipe_semaphore)
+    node = Node(node_id, queue_in, node_queues, node_load)
     node.start()

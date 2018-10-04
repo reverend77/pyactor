@@ -36,16 +36,11 @@ class Endpoint(Actor):
         :param kwargs:
         :return:
         """
-        try:
-            self._pipe_semaphore.acquire(True)
-
-            message = ActorCreationMessage(actor_class, self.id, *args, **kwargs)
-            self._queue_out.put(message)
-            actor_id = self._spawn_return_queue.get()
-            assert isinstance(actor_id, ActorId), "actor_id must be an instance of ActorId"
-            return actor_id
-        finally:
-            self._pipe_semaphore.release()
+        message = ActorCreationMessage(actor_class, self.id, *args, **kwargs)
+        self._queue_out.put(message)
+        actor_id = self._spawn_return_queue.get()
+        assert isinstance(actor_id, ActorId), "actor_id must be an instance of ActorId"
+        return actor_id
 
     def receive(self, timeout=None, predicate=lambda data: True):
 

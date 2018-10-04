@@ -6,8 +6,8 @@ from queue import Empty
 
 
 class ExternalNode(Node):
-    def __init__(self, queue_in, other_nodes, node_load, pipe_semaphore):
-        super().__init__(0, queue_in, other_nodes, node_load, pipe_semaphore)
+    def __init__(self, queue_in, other_nodes, node_load):
+        super().__init__(0, queue_in, other_nodes, node_load)
 
     def _handle_internal_message(self):
         """
@@ -42,7 +42,7 @@ class ExternalNode(Node):
         # TODO endpoint cleanup
         actor_id = self._next_actor_id()
         endpoint = Endpoint(self._node_load)
-        endpoint.set_connection_properties(actor_id, self._internal_queue_in, self._pipe_semaphore)
+        endpoint.set_connection_properties(actor_id, self._internal_queue_in)
         with self._lock:
             self._actors[actor_id] = weakref.ref(endpoint)
         return endpoint

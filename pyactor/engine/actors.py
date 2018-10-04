@@ -23,10 +23,9 @@ class Actor:
     def id(self):
         return self.__id
 
-    def set_connection_properties(self, identifier, queue_out, pipe_semaphore, callback=None):
+    def set_connection_properties(self, identifier, queue_out, callback=None):
         self.__id = identifier
         self._queue_out = queue_out
-        self._pipe_semaphore = pipe_semaphore
         self.__callback = callback
 
     async def switch(self):
@@ -84,20 +83,15 @@ class Actor:
         :param kwargs:
         :return:
         """
-        try:
-            while not self._pipe_semaphore.acquire(False):
-                await self.switch()
-            message = ActorCreationMessage(actor_class, self.__id, *args, **kwargs)
-            self._queue_out.put(message)
+        message = ActorCreationMessage(actor_class, self.__id, *args, **kwargs)
+        self._queue_out.put(message)
 
-            while self._spawn_return_queue.empty():
-                await self.switch()
+        while self._spawn_return_queue.empty():
+            await self.switch()
 
-            actor_id = self._spawn_return_queue.get()
-            assert isinstance(actor_id, ActorId), "actor_id must be an instance of ActorId"
-            return actor_id
-        finally:
-            self._pipe_semaphore.release()
+        actor_id = self._spawn_return_queue.get()
+        assert isinstance(actor_id, ActorId), "actor_id must be an instance of ActorId"
+        return actor_id
 
     async def receive(self, timeout=None, predicate=lambda data: True):
 

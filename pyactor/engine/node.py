@@ -9,7 +9,7 @@ from pyactor.engine.messages import Message, ActorCreationMessage, ActorId, Exit
 
 
 class Node:
-    def __init__(self, node_id, queue_in, other_nodes, node_load, pipe_semaphore):
+    def __init__(self, node_id, queue_in, other_nodes, node_load):
         super().__init__()
         self._id = node_id
         self._external_queue_in = queue_in
@@ -19,7 +19,6 @@ class Node:
         self._actors = {}
         self._lock = RLock()
         self._alive = True
-        self._pipe_semaphore = pipe_semaphore
 
         actor_spawning_queues = {id:queue for id, queue in other_nodes.items() if id != 0} # 0 is id of external node
         if self._id != 0:
@@ -161,7 +160,7 @@ class Node:
                     del self._actors[actor.id]
 
             actor = cls(*args, *kwargs)
-            actor.set_connection_properties(actor_id, self._internal_queue_in, self._pipe_semaphore, callback=remove_actor_ref)
+            actor.set_connection_properties(actor_id, self._internal_queue_in, callback=remove_actor_ref)
             self._actors[actor.id] = actor
 
             while self._event_loop is None:
