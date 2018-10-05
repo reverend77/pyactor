@@ -17,16 +17,14 @@ class Actor:
         self._queue_out = None
         self._pipe_semaphore = None
         self._spawn_return_queue = Queue(maxsize=1)
-        self._transaction_manager = None
 
     @property
     def id(self):
         return self.__id
 
-    def set_connection_properties(self, identifier, queue_out, transaction_manager):
+    def set_connection_properties(self, identifier, queue_out):
         self.__id = identifier
         self._queue_out = queue_out
-        self._transaction_manager = transaction_manager
 
     @staticmethod
     async def switch():
