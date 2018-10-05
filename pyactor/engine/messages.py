@@ -38,13 +38,12 @@ class Message:
         :param recipient: id of the recipient
         :param data: content of message
         """
-        assert isinstance(recipient, ActorId) or recipient is None, "recipient must be a string identifier"
         self.data = data
         self.recipient = recipient
         self.creation_time = int(monotonic() * 1e9)
 
     def __repr__(self):
-        return "Message({},{})".format(self.recipient, self.data)
+        return "{}({},{})".format(self.__class__,self.recipient, self.data)
 
 
 class ExitMessage:
@@ -69,4 +68,9 @@ class ActorCreationResponse(Message):
     """
     def __init__(self, recipient, new_id):
         super().__init__(recipient, new_id)
+
+
+class DeleteActorMessage(Message):
+    def __init__(self, id):
+        super().__init__(None, id)
 

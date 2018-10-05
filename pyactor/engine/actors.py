@@ -3,7 +3,7 @@ from queue import Empty, Queue
 import asyncio
 from copy import deepcopy
 
-from pyactor.engine.messages import Message, ActorId, ActorCreationMessage, ActorCreationResponse
+from pyactor.engine.messages import Message, ActorId, ActorCreationMessage, ActorCreationResponse, DeleteActorMessage
 
 
 class Actor:
@@ -16,32 +16,28 @@ class Actor:
         self._queue_in = Queue()
         self._queue_out = None
         self._pipe_semaphore = None
-        self.__callback = None
         self._spawn_return_queue = Queue(maxsize=1)
 
     @property
     def id(self):
         return self.__id
 
-    def set_connection_properties(self, identifier, queue_out, callback=None):
+    def set_connection_properties(self, identifier, queue_out):
         self.__id = identifier
         self._queue_out = queue_out
-        self.__callback = callback
 
-    async def switch(self):
+    @staticmethod
+    async def switch():
         await asyncio.sleep(0.01)
 
     def start(self, loop):
-        asyncio.run_coroutine_threadsafe(self.run(), loop)
+        asyncio.run_coroutine_threadsafe(self.__run(), loop)
 
     async def __run(self):
-        assert self.__id is not None
-        assert self._queue_out is not None
-        assert self._pipe_semaphore is not None
         try:
             await self.run()
         finally:
-            self.__callback()
+            self._queue_out.put(DeleteActorMessage(self.__id))
 
     async def run(self):
         """

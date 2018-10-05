@@ -12,8 +12,7 @@ class Endpoint:
     Endpoint actor - allows to send messages from outside of the actor system.
     """
 
-    def __init__(self, node_load):
-        self.__node_load = MappingProxyType(node_load)
+    def __init__(self):
         self.__id = None
         self._queue_in = Queue()
         self._queue_out = None
@@ -24,10 +23,6 @@ class Endpoint:
     @property
     def id(self):
         return self.__id
-
-    @property
-    def node_load(self):
-        return {id: value.value for id, value in self.__node_load.items()}
 
     def terminate(self):
         self._queue_out.put(ExitMessage())
@@ -72,7 +67,8 @@ class Endpoint:
 
         raise ReceiveTimedOut()
 
-    def switch(self):
+    @staticmethod
+    def switch():
         sleep(0.001)
 
     def send_message(self, recipient, data):

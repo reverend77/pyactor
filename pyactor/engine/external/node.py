@@ -3,12 +3,13 @@ from pyactor.engine.external.endpoint import Endpoint
 from queue import Empty, Queue
 from threading import RLock, Thread
 from time import sleep, monotonic
+from itertools import cycle
 
 from pyactor.engine.messages import ActorId
 
 
 class ExternalNode:
-    def __init__(self, queue_in, other_nodes, node_load, scheduler_lock):
+    def __init__(self, queue_in, other_nodes):
         super().__init__()
         self._id = 0
         self._external_queue_in = queue_in
@@ -23,9 +24,10 @@ class ExternalNode:
         if self._id != 0:
             actor_spawning_queues[self._id] = queue_in
         self._actor_spawning_queues = actor_spawning_queues
-        self._node_load = node_load
+        node_ids = list(actor_spawning_queues.keys())
+        self._spawning_schedule = cycle(node_ids[self._id:] + node_ids[:self._id])
+        self._actor_spawning_queues = actor_spawning_queues
         self.__worker = Thread(target=self.__start)
-        self._scheduler_lock = scheduler_lock
 
     def start(self):
         self.__worker.start()
@@ -88,13 +90,7 @@ class ExternalNode:
         :param msg:
         :return:
         """
-        self._scheduler_lock.lock_read()
-        chosen_node_id = min(self._node_load.keys(), key=lambda k: self._node_load[k].value)
-        self._scheduler_lock.unlock_read()
-
-        self._scheduler_lock.lock_write()
-        self._node_load[chosen_node_id].value += 1
-        self._scheduler_lock.unlock_write()
+        chosen_node_id = next(self._spawning_schedule)
 
         chosen_queue = self._actor_spawning_queues[chosen_node_id]
         chosen_queue.put(msg)
@@ -152,7 +148,7 @@ class ExternalNode:
     def create_endpoint(self):
         # TODO endpoint cleanup
         actor_id = self._next_actor_id()
-        endpoint = Endpoint(self._node_load)
+        endpoint = Endpoint()
         endpoint.set_connection_properties(actor_id, self._internal_queue_in)
         with self._lock:
             self._actors[actor_id] = endpoint

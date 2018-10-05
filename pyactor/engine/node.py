@@ -4,12 +4,12 @@ from threading import RLock, Thread
 from time import sleep, monotonic
 from sys import exit
 import asyncio
-
-from pyactor.engine.messages import Message, ActorCreationMessage, ActorId, ExitMessage, ActorCreationResponse
+from itertools import cycle
+from pyactor.engine.messages import Message, ActorCreationMessage, ActorId, ExitMessage, ActorCreationResponse, DeleteActorMessage
 
 
 class Node:
-    def __init__(self, node_id, queue_in, other_nodes, node_load, scheduler_lock):
+    def __init__(self, node_id, queue_in, other_nodes):
         super().__init__()
         self._id = node_id
         self._external_queue_in = queue_in
@@ -23,12 +23,13 @@ class Node:
         actor_spawning_queues = {id:queue for id, queue in other_nodes.items() if id != 0} # 0 is id of external node
         if self._id != 0:
             actor_spawning_queues[self._id] = queue_in
+
+        node_ids = list(actor_spawning_queues.keys())
+        self._spawning_schedule = cycle(node_ids[self._id:] + node_ids[:self._id])
         self._actor_spawning_queues = actor_spawning_queues
-        self._node_load = node_load
 
         self._event_loop_thread = Thread(target=self.__event_loop_method)
         self._event_loop_thread.daemon = True
-        self._scheduler_lock = scheduler_lock
 
         self._event_loop = None
 
@@ -77,7 +78,14 @@ class Node:
         except Empty:
             return False
 
-        if isinstance(msg, ActorCreationMessage):
+        if isinstance(msg, DeleteActorMessage):
+            """
+            Remove reference to terminated actor.
+            """
+            with self._lock:
+                del self._actors[msg.data]
+
+        elif isinstance(msg, ActorCreationMessage):
             """
             An actor will eventually be spawned, but it has yet to be determined where to spawn it.
             """
@@ -96,13 +104,7 @@ class Node:
         :param msg:
         :return:
         """
-        self._scheduler_lock.lock_read()
-        chosen_node_id = min(self._node_load.keys(), key=lambda k: self._node_load[k].value)
-        self._scheduler_lock.unlock_read()
-
-        self._scheduler_lock.lock_write()
-        self._node_load[chosen_node_id].value += 1
-        self._scheduler_lock.unlock_write()
+        chosen_node_id = next(self._spawning_schedule)
 
         chosen_queue = self._actor_spawning_queues[chosen_node_id]
         chosen_queue.put(msg)
@@ -157,16 +159,8 @@ class Node:
         kwargs = msg.kwargs
         with self._lock:
             actor_id = self._next_actor_id()
-
-            def remove_actor_ref():
-                self._scheduler_lock.lock_write()
-                self._node_load[self._id].value -= 1
-                self._scheduler_lock.unlock_write()
-                with self._lock:
-                    del self._actors[actor.id]
-
             actor = cls(*args, *kwargs)
-            actor.set_connection_properties(actor_id, self._internal_queue_in, callback=remove_actor_ref)
+            actor.set_connection_properties(actor_id, self._internal_queue_in)
             self._actors[actor.id] = actor
 
             while self._event_loop is None:

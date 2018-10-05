@@ -3,13 +3,11 @@ from os import cpu_count
 from threading import Thread
 
 from pyactor.engine.external.node import ExternalNode
-from pyactor.engine.utils.lock import RWLock
 from pyactor.engine.utils.node_utils import spawn_and_start_node
 
 
-def _start_external_node(queue_in, other_queues_out, node_load, scheduler_lock):
-    node = ExternalNode(queue_in, {id: queue for id, queue in other_queues_out.items() if id != 0}, node_load,
-                        scheduler_lock)
+def _start_external_node(queue_in, other_queues_out):
+    node = ExternalNode(queue_in, {id: queue for id, queue in other_queues_out.items() if id != 0})
     endpoint = node.create_endpoint()
     Thread(target=node.start).start()
     return endpoint
@@ -17,13 +15,11 @@ def _start_external_node(queue_in, other_queues_out, node_load, scheduler_lock):
 
 def start_system(nodes=cpu_count()):
     queues = {i: Queue() for i in range(nodes + 1)}
-    scheduler_lock = RWLock()
 
-    node_load = {node_id: Value("Q", 0, lock=False) for node_id in range(1, nodes + 1)}
     for id in range(1, nodes + 1):
-        proc = Process(target=spawn_and_start_node, args=(id, queues[id], queues, node_load, scheduler_lock))
+        proc = Process(target=spawn_and_start_node, args=(id, queues[id], queues))
         proc.start()
-    return _start_external_node(queues[0], queues, node_load, scheduler_lock)
+    return _start_external_node(queues[0], queues)
 
 
 from pyactor.engine.actors import Actor, ActorId
@@ -61,4 +57,3 @@ if __name__ == "__main__":
         endpoint.spawn(FibonacciActor, endpoint.id, num)
         result = endpoint.receive()
         print("{}. Fibonacci number: {}".format(num + 1, result))
-        print(endpoint.node_load)
