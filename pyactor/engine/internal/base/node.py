@@ -9,6 +9,9 @@ from pyactor.engine.internal.base.messages import Message, ActorCreationMessage,
 
 
 class Node:
+    __slots__ = ("_id", "_external_queue_in", "_other_nodes", "_internal_queue_in", "_actors", "_lock", "_alive",
+                 "_spawning_schedule", "_actor_spawning_queues", "_event_loop_thread", "_event_loop")
+
     def __init__(self, node_id, queue_in, other_nodes):
         super().__init__()
         self._id = node_id
