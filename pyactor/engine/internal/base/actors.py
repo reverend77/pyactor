@@ -11,6 +11,8 @@ class Actor:
     Basic actor class.
     """
 
+    __slots__ = "__id", "_queue_in", "_queue_out", "_pipe_semaphore", "_spawn_return_queue"
+
     def __init__(self):
         self.__id = None
         self._queue_in = Queue()
