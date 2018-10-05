@@ -9,9 +9,8 @@ from pyactor.engine.internal.base.messages import Message, ActorCreationMessage,
 
 
 class Node:
-    def __init__(self, node_id, queue_in, other_nodes, transaction_engine):
+    def __init__(self, node_id, queue_in, other_nodes):
         super().__init__()
-        self._transaction_engine = transaction_engine
         self._id = node_id
         self._external_queue_in = queue_in
         self._other_nodes = other_nodes

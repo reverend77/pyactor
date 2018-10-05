@@ -1,14 +1,13 @@
-from multiprocessing import Queue, Process, Lock
+from multiprocessing import Queue, Process
 from os import cpu_count
 from threading import Thread
 
 from pyactor.engine.external.node import ExternalNode
 from pyactor.engine.utils.node_utils import spawn_and_start_node
-from pyactor.engine.internal.transactional.engine import TransactionEngine
 
 
-def _start_external_node(queue_in, other_queues_out, transaction_engine):
-    node = ExternalNode(queue_in, {id: queue for id, queue in other_queues_out.items() if id != 0}, transaction_engine)
+def _start_external_node(queue_in, other_queues_out):
+    node = ExternalNode(queue_in, {id: queue for id, queue in other_queues_out.items() if id != 0})
     endpoint = node.create_endpoint()
     Thread(target=node.start).start()
     return endpoint
@@ -16,13 +15,11 @@ def _start_external_node(queue_in, other_queues_out, transaction_engine):
 
 def start_system(nodes=cpu_count()):
     queues = {i: Queue() for i in range(nodes + 1)}
-    transaction_lock = Lock()
-    transaction_enqine = TransactionEngine(transaction_lock)
 
     for id in range(1, nodes + 1):
-        proc = Process(target=spawn_and_start_node, args=(id, queues[id], queues, transaction_enqine))
+        proc = Process(target=spawn_and_start_node, args=(id, queues[id], queues))
         proc.start()
-    return _start_external_node(queues[0], queues, transaction_enqine)
+    return _start_external_node(queues[0], queues)
 
 
 from pyactor.engine.internal.base.actors import Actor, ActorId
