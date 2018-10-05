@@ -1,11 +1,11 @@
-from pyactor.engine.messages import Message, ExitMessage, ActorCreationMessage
+from pyactor.engine.internal.base.messages import Message, ExitMessage, ActorCreationMessage
 from pyactor.engine.external.endpoint import Endpoint
 from queue import Empty, Queue
 from threading import RLock, Thread
 from time import sleep, monotonic
 from itertools import cycle
 
-from pyactor.engine.messages import ActorId
+from pyactor.engine.internal.base.messages import ActorId
 
 
 class ExternalNode:

@@ -1,9 +1,8 @@
-from pyactor.engine.actors import ReceiveTimedOut
-from pyactor.engine.messages import ExitMessage, ActorCreationMessage, ActorId, Message, ActorCreationResponse
+from pyactor.engine.internal.base.actors import ReceiveTimedOut
+from pyactor.engine.internal.base.messages import ExitMessage, ActorCreationMessage, ActorId, Message, ActorCreationResponse
 from time import monotonic, sleep
 from queue import Empty
 from copy import deepcopy
-from types import MappingProxyType
 from queue import Queue
 
 

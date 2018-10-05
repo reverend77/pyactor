@@ -3,7 +3,7 @@ from queue import Empty, Queue
 import asyncio
 from copy import deepcopy
 
-from pyactor.engine.messages import Message, ActorId, ActorCreationMessage, ActorCreationResponse, DeleteActorMessage
+from pyactor.engine.internal.base.messages import Message, ActorId, ActorCreationMessage, ActorCreationResponse, DeleteActorMessage
 
 
 class Actor:

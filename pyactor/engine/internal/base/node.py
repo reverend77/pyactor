@@ -5,7 +5,7 @@ from time import sleep, monotonic
 from sys import exit
 import asyncio
 from itertools import cycle
-from pyactor.engine.messages import Message, ActorCreationMessage, ActorId, ExitMessage, ActorCreationResponse, DeleteActorMessage
+from pyactor.engine.internal.base.messages import Message, ActorCreationMessage, ActorId, ExitMessage, ActorCreationResponse, DeleteActorMessage
 
 
 class Node:

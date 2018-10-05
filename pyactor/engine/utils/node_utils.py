@@ -1,4 +1,4 @@
-from pyactor.engine.node import Node
+from pyactor.engine.internal.base.node import Node
 
 
 def spawn_and_start_node(node_id, queue_in, node_queues):

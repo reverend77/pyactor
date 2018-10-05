@@ -1,4 +1,4 @@
-from multiprocessing import Queue, Process, Value
+from multiprocessing import Queue, Process
 from os import cpu_count
 from threading import Thread
 
@@ -22,7 +22,7 @@ def start_system(nodes=cpu_count()):
     return _start_external_node(queues[0], queues)
 
 
-from pyactor.engine.actors import Actor, ActorId
+from pyactor.engine.internal.base.actors import Actor, ActorId
 
 
 class TestActor(Actor):
