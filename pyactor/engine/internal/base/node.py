@@ -161,7 +161,8 @@ class Node:
         with self._lock:
             actor_id = self._next_actor_id()
             actor = cls(*args, *kwargs)
-            actor.set_connection_properties(actor_id, self._internal_queue_in)
+            actor.set_connection_properties(actor_id, self._internal_queue_in
+                                            , self._transaction_engine.create_manager(actor_id))
             self._actors[actor.id] = actor
 
             while self._event_loop is None:

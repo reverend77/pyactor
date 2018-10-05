@@ -1,8 +1,10 @@
 from multiprocessing import Lock
 from asyncio import sleep
+from contextlib import AbstractAsyncContextManager
 
 
 class TransactionEngine:
+
     def __init__(self, lock: Lock):
         self.lock = lock
         self.transaction_owner = None
@@ -20,6 +22,17 @@ class TransactionEngine:
         if actor_id == self.transaction_owner:
             self.transaction_owner = None
 
+    def create_manager(self, actor_id):
+        return TransactionManager(actor_id, self)
 
 
+class TransactionManager(AbstractAsyncContextManager):
+    def __init__(self, actor_id, engine):
+        self.owner = actor_id
+        self.engine = engine
 
+    async def __aenter__(self):
+        await self.engine.begin_transaction(self.owner)
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        await self.engine.end_transaction(self.owner)
