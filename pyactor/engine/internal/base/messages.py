@@ -69,8 +69,3 @@ class ActorCreationResponse(Message):
     def __init__(self, recipient, new_id):
         super().__init__(recipient, new_id)
 
-
-class DeleteActorMessage(Message):
-    def __init__(self, id):
-        super().__init__(None, id)
-

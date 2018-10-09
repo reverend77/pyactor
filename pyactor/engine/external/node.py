@@ -4,6 +4,7 @@ from queue import Empty, Queue
 from threading import RLock, Thread
 from time import sleep, monotonic
 from itertools import cycle
+from weakref import WeakValueDictionary
 
 from pyactor.engine.internal.base.messages import ActorId
 
@@ -16,7 +17,7 @@ class ExternalNode:
         self._other_nodes = other_nodes
         self._internal_queue_in = Queue()
 
-        self._actors = {}
+        self._actors = WeakValueDictionary()
         self._lock = RLock()
         self._alive = True
 
@@ -146,7 +147,6 @@ class ExternalNode:
             return self._actors.get(id, None)
 
     def create_endpoint(self):
-        # TODO endpoint cleanup
         actor_id = self._next_actor_id()
         endpoint = Endpoint()
         endpoint.set_connection_properties(actor_id, self._internal_queue_in)

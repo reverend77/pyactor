@@ -5,7 +5,9 @@ from time import sleep, monotonic
 from sys import exit
 import asyncio
 from itertools import cycle
-from pyactor.engine.internal.base.messages import Message, ActorCreationMessage, ActorId, ExitMessage, ActorCreationResponse, DeleteActorMessage
+from weakref import WeakValueDictionary
+
+from pyactor.engine.internal.base.messages import Message, ActorCreationMessage, ActorId, ExitMessage, ActorCreationResponse
 
 
 class Node:
@@ -19,7 +21,7 @@ class Node:
         self._other_nodes = other_nodes
         self._internal_queue_in = Queue()
 
-        self._actors = {}
+        self._actors = WeakValueDictionary()
         self._lock = RLock()
         self._alive = True
 
@@ -81,14 +83,7 @@ class Node:
         except Empty:
             return False
 
-        if isinstance(msg, DeleteActorMessage):
-            """
-            Remove reference to terminated actor.
-            """
-            with self._lock:
-                del self._actors[msg.data]
-
-        elif isinstance(msg, ActorCreationMessage):
+        if isinstance(msg, ActorCreationMessage):
             """
             An actor will eventually be spawned, but it has yet to be determined where to spawn it.
             """

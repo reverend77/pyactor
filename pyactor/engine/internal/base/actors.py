@@ -3,15 +3,13 @@ from queue import Empty, Queue
 import asyncio
 from copy import deepcopy
 
-from pyactor.engine.internal.base.messages import Message, ActorId, ActorCreationMessage, ActorCreationResponse, DeleteActorMessage
+from pyactor.engine.internal.base.messages import Message, ActorId, ActorCreationMessage, ActorCreationResponse
 
 
 class Actor:
     """
     Basic actor class.
     """
-
-    __slots__ = "__id", "_queue_in", "_queue_out", "_pipe_semaphore", "_spawn_return_queue"
 
     def __init__(self):
         self.__id = None
@@ -36,10 +34,7 @@ class Actor:
         asyncio.run_coroutine_threadsafe(self.__run(), loop)
 
     async def __run(self):
-        try:
-            await self.run()
-        finally:
-            self._queue_out.put(DeleteActorMessage(self.__id))
+        await self.run()
 
     async def run(self):
         """
