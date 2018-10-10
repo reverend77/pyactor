@@ -90,14 +90,16 @@ class Actor:
 
         def timed_out():
             if timeout is None:
-              return False
+                return False
             else:
                 return monotonic() - start <= timeout
 
         leftovers = []
         start = monotonic()
         try:
-            while not timed_out():
+            attempts = 0
+            while not timed_out() or attempts < 2:
+                attempts += 1
                 try:
                     data = self.__queue_in.get_nowait()
                     if predicate(data):

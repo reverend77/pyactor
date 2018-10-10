@@ -50,7 +50,9 @@ class Endpoint:
         leftovers = []
         start = monotonic()
         try:
-            while not timed_out():
+            attempts = 0
+            while not timed_out() or attempts < 2:
+                attempts += 1
                 try:
                     data = self._queue_in.get_nowait()
                     if predicate(data):
