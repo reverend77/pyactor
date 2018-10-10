@@ -1,5 +1,6 @@
-from multiprocessing import Pipe
 from time import monotonic
+from functools import reduce
+from operator import xor
 
 
 class ActorId:
@@ -22,7 +23,7 @@ class ActorId:
         return False
 
     def __hash__(self):
-        return hash((self.node_id, self.actor_id, self.creation_time))
+        return reduce(xor, (hash(component) for component in (self.node_id, self.actor_id, self.creation_time)))
 
     def __repr__(self):
         return "ActorId({}, {})".format(self.node_id, self.actor_id)
