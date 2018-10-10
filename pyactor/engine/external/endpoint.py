@@ -14,17 +14,16 @@ class Endpoint:
     def __init__(self):
         self.__id = None
         self._queue_in = Queue()
-        self._queue_out = None
-        self._pipe_semaphore = None
-        self.__callback = None
-        self._spawn_return_queue = Queue(maxsize=1)
+        self.__queue_out = None
+        self.__pipe_semaphore = None
+        self.__spawn_return_queue = Queue(maxsize=1)
 
     @property
     def id(self):
         return self.__id
 
     def terminate(self):
-        self._queue_out.put(ExitMessage())
+        self.__queue_out.put(ExitMessage())
 
     def spawn(self, actor_class, *args, **kwargs):
         """
@@ -35,8 +34,8 @@ class Endpoint:
         :return:
         """
         message = ActorCreationMessage(actor_class, self.id, *args, **kwargs)
-        self._queue_out.put(message)
-        actor_id = self._spawn_return_queue.get()
+        self.__queue_out.put(message)
+        actor_id = self.__spawn_return_queue.get()
         assert isinstance(actor_id, ActorId), "actor_id must be an instance of ActorId"
         return actor_id
 
@@ -81,11 +80,11 @@ class Endpoint:
         if recipient.node_id == self.id.node_id:
             data = deepcopy(data)
         msg = Message(recipient, data)
-        self._queue_out.put(msg)
+        self.__queue_out.put(msg)
 
     def set_connection_properties(self, identifier, queue_out):
         self.__id = identifier
-        self._queue_out = queue_out
+        self.__queue_out = queue_out
 
     def enqueue_message(self, message):
         """
@@ -95,6 +94,6 @@ class Endpoint:
         """
         assert isinstance(message, Message), "Unsupported message - must be an instance of Message"
         if isinstance(message, ActorCreationResponse):
-            self._spawn_return_queue.put(message.data)
+            self.__spawn_return_queue.put(message.data)
         else:
             self._queue_in.put(message.data)
