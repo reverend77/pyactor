@@ -2,11 +2,12 @@ from time import monotonic
 from queue import Empty, Queue
 import asyncio
 from copy import deepcopy
+from abc import ABC, abstractmethod
 
 from pyactor.engine.internal.base.messages import Message, ActorId, ActorCreationMessage, ActorCreationResponse
 
 
-class Actor:
+class Actor(ABC):
     """
     Basic actor class.
     """
@@ -36,7 +37,9 @@ class Actor:
     async def __run(self):
         await self.run()
 
+    @abstractmethod
     async def run(self):
+        pass
         """
         Override this method to implement actor behaviour
         """
