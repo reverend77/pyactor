@@ -13,10 +13,10 @@ class Actor:
 
     def __init__(self):
         self.__id = None
-        self._queue_in = Queue()
-        self._queue_out = None
-        self._pipe_semaphore = None
-        self._spawn_return_queue = Queue(maxsize=1)
+        self.__queue_in = Queue()
+        self.__queue_out = None
+        self.__pipe_semaphore = None
+        self.__spawn_return_queue = Queue(maxsize=1)
 
     @property
     def id(self):
@@ -24,7 +24,7 @@ class Actor:
 
     def set_connection_properties(self, identifier, queue_out):
         self.__id = identifier
-        self._queue_out = queue_out
+        self.__queue_out = queue_out
 
     @staticmethod
     async def switch():
@@ -50,9 +50,9 @@ class Actor:
         """
         assert isinstance(message, Message), "Unsupported message - must be an instance of Message"
         if isinstance(message, ActorCreationResponse):
-            self._spawn_return_queue.put(message.data)
+            self.__spawn_return_queue.put(message.data)
         else:
-            self._queue_in.put(message.data)
+            self.__queue_in.put(message.data)
 
     async def send_message(self, recipient, data):
         """
@@ -65,7 +65,7 @@ class Actor:
         if recipient.node_id == self.id.node_id:
             data = deepcopy(data)
         msg = Message(recipient, data)
-        self._queue_out.put(msg)
+        self.__queue_out.put(msg)
         await self.switch()
 
     async def spawn(self, actor_class, *args, **kwargs):
@@ -77,12 +77,12 @@ class Actor:
         :return:
         """
         message = ActorCreationMessage(actor_class, self.__id, *args, **kwargs)
-        self._queue_out.put(message)
+        self.__queue_out.put(message)
 
-        while self._spawn_return_queue.empty():
+        while self.__spawn_return_queue.empty():
             await self.switch()
 
-        actor_id = self._spawn_return_queue.get()
+        actor_id = self.__spawn_return_queue.get()
         assert isinstance(actor_id, ActorId), "actor_id must be an instance of ActorId"
         return actor_id
 
@@ -99,7 +99,7 @@ class Actor:
         try:
             while not timed_out():
                 try:
-                    data = self._queue_in.get_nowait()
+                    data = self.__queue_in.get_nowait()
                     if predicate(data):
                         return data
                     else:
@@ -108,7 +108,7 @@ class Actor:
                     await self.switch()
         finally:
             for leftover in leftovers:
-                self._queue_in.put(leftover)
+                self.__queue_in.put(leftover)
 
         raise ReceiveTimedOut()
 
