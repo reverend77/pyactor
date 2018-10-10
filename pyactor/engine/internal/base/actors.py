@@ -40,10 +40,6 @@ class Actor(ABC):
     @abstractmethod
     async def run(self):
         pass
-        """
-        Override this method to implement actor behaviour
-        """
-        raise NotImplementedError("run method not implemented on actor {}".format(self.id))
 
     def enqueue_message(self, message):
         """
