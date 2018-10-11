@@ -22,13 +22,12 @@ class ExternalNode:
         self._alive = True
 
         actor_spawning_queues = {id:queue for id, queue in other_nodes.items() if id != 0} # 0 is id of external node
-        if self._id != 0:
-            actor_spawning_queues[self._id] = queue_in
         self._actor_spawning_queues = actor_spawning_queues
         node_ids = list(actor_spawning_queues.keys())
         self._spawning_schedule = cycle(node_ids[self._id:] + node_ids[:self._id])
         self._actor_spawning_queues = actor_spawning_queues
         self.__worker = Thread(target=self.__start)
+        self.__worker.daemon = True
 
     def start(self):
         self.__worker.start()
@@ -41,9 +40,10 @@ class ExternalNode:
         try:
             msg = self._internal_queue_in.get(block=False)
             if isinstance(msg, ExitMessage):
-                for queue in self._other_nodes.values():
+                for queue in self._actor_spawning_queues.values():
                     queue.put(msg)
                 self.terminate()
+                return True
 
             assert isinstance(msg, Message), "Message must be an instance of Message class"
         except Empty:
@@ -62,21 +62,22 @@ class ExternalNode:
             self._send_message_to_remote_recipient(msg)
         return True
 
-    @staticmethod
-    def terminate():
+    def terminate(self):
         """
         Exits the system - actors are daemons, so exit is almost immediate.
         Important notice: exit it not grateful by default.
         :return:
         """
-        exit(0)
+        self._alive = False
 
     def enqueue_message(self, message):
         self._external_queue_in.put(message)
 
     def __start(self):
-        while True:
+        while self._alive:
             internal_message_received = self._handle_internal_message()
+            if not self._alive:
+                return
             external_message_received = False
             for __ in self._other_nodes:
                 external_message_received = self._handle_external_message()
@@ -103,8 +104,6 @@ class ExternalNode:
         """
         try:
             msg = self._external_queue_in.get(block=False)
-            if isinstance(msg, ExitMessage):
-                self.terminate()
 
             assert isinstance(msg, Message), "Message must be an instance of Message class"
         except Empty:

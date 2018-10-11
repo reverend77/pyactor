@@ -17,3 +17,4 @@ def test_start():
     endpoint.send_message(pinged, endpoint.id)
     pinged_id = endpoint.receive()
     assert pinged_id == pinged
+    endpoint.stop_system()

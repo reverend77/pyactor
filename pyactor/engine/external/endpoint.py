@@ -99,3 +99,10 @@ class Endpoint:
             self.__spawn_return_queue.put(message.data)
         else:
             self._queue_in.put(message.data)
+
+    def stop_system(self):
+        """
+        Method that can be used to terminate actor system. Important: this action cannot be cancelled.
+        :return:
+        """
+        self.__queue_out.put(ExitMessage())

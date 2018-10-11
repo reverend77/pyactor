@@ -44,13 +44,13 @@ class Node:
         asyncio.set_event_loop(loop)
         loop.run_forever()
 
-    @staticmethod
-    def terminate():
+    def terminate(self):
         """
         Exits the system - actors are daemons, so exit is almost immediate.
         Important notice: exit it not grateful by default.
         :return:
         """
+        self._alive = False
         exit(0)
 
     def enqueue_message(self, message):
@@ -68,6 +68,8 @@ class Node:
                 external_message_received = self._handle_external_message()
                 if not external_message_received:
                     break
+                elif not self._alive:
+                    return
             if not (internal_message_received or external_message_received):
                 sleep(0.2)
 

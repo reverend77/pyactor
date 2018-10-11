@@ -9,7 +9,8 @@ from pyactor.engine.utils.node_utils import spawn_and_start_node
 def _start_external_node(queue_in, other_queues_out):
     node = ExternalNode(queue_in, {id: queue for id, queue in other_queues_out.items() if id != 0})
     endpoint = node.create_endpoint()
-    Thread(target=node.start).start()
+    worker_thread = Thread(target=node.start)
+    worker_thread.start()
     return endpoint
 
 
@@ -53,7 +54,8 @@ class FibonacciActor(Actor):
 
 if __name__ == "__main__":
     endpoint = start_system()
-    for num in range(1000):
+    for num in range(1):
         endpoint.spawn(FibonacciActor, endpoint.id, num)
         result = endpoint.receive()
         print("{}. Fibonacci number: {}".format(num + 1, result))
+    endpoint.stop_system()
